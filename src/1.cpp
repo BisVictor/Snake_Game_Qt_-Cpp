@@ -25,13 +25,48 @@ typedef struct {
   int pause;
 } GameInfo_t;
 
-void print_field(GameInfo_t gameInfo) {
+typedef enum {
+  Start,
+  Pause,
+  Terminate,
+  Left,
+  Right,
+  Up,
+  Down,
+  Action
+} UserAction_t;
+
+#define FIELD_HEIGHT 22
+#define FIELD_WIDTH 12
+
+const int ESCAPE_KEY{27};
+const int ENTER_KEY{10};
+const int SPACE_KEY{32};
+
+UserAction_t get_signal(int user_input) {
+  UserAction_t key_code = Start;
+  if (user_input == KEY_DOWN)
+    key_code = Down;
+  else if (user_input == KEY_LEFT)
+    key_code = Left;
+  else if (user_input == KEY_RIGHT)
+    key_code = Right;
+  else if (user_input == ESCAPE_KEY)
+    key_code = Terminate;
+  else if (user_input == ENTER_KEY)
+    key_code = Pause;
+  else if (user_input == SPACE_KEY)
+    key_code = Action;
+  return key_code;
+}
+
+void print_field(GameInfo_t game_info_update) {
   setlocale(LC_ALL, "");  // Включение поддержки Unicode
   clear();
 
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
-      if (gameInfo.field[i][j] > 0) {
+      if (game_info_update.field[i][j] > 0) {
         printw("##");
       } else {
         printw("  ");
@@ -92,6 +127,7 @@ void free_memory_snake(GameInfo_t* gameInfo) {
 GameInfo_t updateCurrentState(GameInfo_t gameInfo) {
   GameInfo_t game_info_update;
   allocate_memory_for_field(&game_info_update);
+
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
       if (gameInfo.field[i][j] > 0 || gameInfo.snake[i][j] > 0) {
@@ -101,6 +137,14 @@ GameInfo_t updateCurrentState(GameInfo_t gameInfo) {
       }
     }
   }
+
+  for (int i = 0; i < 100; i++) {
+    // std::cout << gameInfo.tail_x[i] << "and" << gameInfo.tail_y[i];
+    if (gameInfo.tail_x[i] > 0 && gameInfo.tail_y[i] > 0) {
+      game_info_update.field[gameInfo.tail_y[i]][gameInfo.tail_x[i]] = 1;
+    }
+  }
+
   return game_info_update;
 }
 
@@ -115,9 +159,9 @@ int main() {
   gameInfo.speed = 1;
   gameInfo.pause = 0;
 
-  gameInfo.tail_x = new int[FIELD_WIDTH];
-  gameInfo.tail_y = new int[FIELD_HEIGHT];
-  int n_tail = 0;
+  gameInfo.tail_x = new int[100]();
+
+  gameInfo.tail_y = new int[100]();
 
   // Выделение памяти для игрового поля
   allocate_memory_for_field(&gameInfo);
@@ -128,15 +172,27 @@ int main() {
   noecho();
   curs_set(0);
 
-  int i = 13;
-  int j = 5;
+  int y = 13;
+  int x = 5;
+  int n_tail = 4;
+  int user_input = Start;
+  UserAction_t action = get_signal(user_input);
 
-  while (i > 0 && waitHalfSecond()) {  // Добавили проверку границы
+  while (y > 0 && waitHalfSecond()) {  // Добавили проверку границы
     allocate_memory_for_snake(&gameInfo);
-    gameInfo.snake[i][j] = 1;
+    gameInfo.snake[y][x] = 1;
+
+    for (int i = n_tail - 1; i > 0; i--) {
+      gameInfo.tail_x[i] = gameInfo.tail_x[i - 1];
+      gameInfo.tail_y[i] = gameInfo.tail_y[i - 1];
+    }
+
+    gameInfo.tail_x[0] = x;  // Координаты новой головы
+    gameInfo.tail_y[0] = y;
+    y--;
+
     print_field(updateCurrentState(gameInfo));
 
-    i--;
     free_memory_snake(&gameInfo);
   }
 
@@ -146,7 +202,7 @@ int main() {
 
   // Освобождение памяти
   free_memory_field(&gameInfo);
-  free_memory_snake(&gameInfo);
+  // free_memory_snake(&gameInfo);
   delete[] gameInfo.tail_x;
   delete[] gameInfo.tail_y;
 
