@@ -18,6 +18,7 @@ typedef struct {
   int** next;
   int* tail_x;
   int* tail_y;
+  int prev_key;
   int score;
   int high_score;
   int level;
@@ -47,6 +48,8 @@ UserAction_t get_signal(int user_input) {
   UserAction_t key_code = Start;
   if (user_input == KEY_DOWN)
     key_code = Down;
+  else if (user_input == KEY_UP)
+    key_code = Up;
   else if (user_input == KEY_LEFT)
     key_code = Left;
   else if (user_input == KEY_RIGHT)
@@ -60,7 +63,7 @@ UserAction_t get_signal(int user_input) {
   return key_code;
 }
 
-void print_field(GameInfo_t game_info_update) {
+void print_field_n(GameInfo_t game_info_update) {
   setlocale(LC_ALL, "");  // Включение поддержки Unicode
   clear();
 
@@ -72,10 +75,25 @@ void print_field(GameInfo_t game_info_update) {
         printw("  ");
       }
     }
+    // std::cout << "ss" << std::endl;
     printw("\n");
   }
 
   refresh();
+}
+
+void print_field(GameInfo_t game_info_update) {
+  for (int i = 0; i < FIELD_HEIGHT; i++) {
+    for (int j = 0; j < FIELD_WIDTH; j++) {
+      if (game_info_update.field[i][j] > 0) {
+        printf("##");
+      } else {
+        printf("  ");
+      }
+    }
+    printf("\n");
+  }
+  printf("\n");
 }
 // @brief выделение памяти
 void allocate_memory_for_field(GameInfo_t* gameInfo) {
@@ -171,16 +189,23 @@ int main() {
   cbreak();
   noecho();
   curs_set(0);
+  keypad(stdscr, TRUE);  // Включаем поддержку стрелок
+  nodelay(stdscr, TRUE);
 
-  int y = 13;
+  int y = 18;
   int x = 5;
   int n_tail = 4;
   int user_input = Start;
-  UserAction_t action = get_signal(user_input);
+  gameInfo.prev_key = -1;
 
+  int key = 0;
   while (y > 0 && waitHalfSecond()) {  // Добавили проверку границы
     allocate_memory_for_snake(&gameInfo);
-    gameInfo.snake[y][x] = 1;
+
+    key = getch();
+    if (key != -1) {  // Если клавиша была нажата
+      gameInfo.prev_key = key;
+    }
 
     for (int i = n_tail - 1; i > 0; i--) {
       gameInfo.tail_x[i] = gameInfo.tail_x[i - 1];
@@ -189,16 +214,31 @@ int main() {
 
     gameInfo.tail_x[0] = x;  // Координаты новой головы
     gameInfo.tail_y[0] = y;
-    y--;
-
-    print_field(updateCurrentState(gameInfo));
-
+    switch (gameInfo.prev_key) {
+      case KEY_UP:
+        y--;
+        break;
+      case KEY_DOWN:
+        y++;
+        break;
+      case KEY_LEFT:
+        x--;
+        break;
+      case KEY_RIGHT:
+        x++;
+        break;
+      default:
+        break;
+    }
+    // continuation_of_movement(&gameInfo, &x, &y);
+    gameInfo.snake[y][x] = 1;
+    print_field_n(updateCurrentState(gameInfo));
     free_memory_snake(&gameInfo);
   }
 
   getch();  // Ждем нажатия клавиши перед выходом
 
-  endwin();  // Завершаем ncurses
+  endwin();  // Завершаем ncurses */
 
   // Освобождение памяти
   free_memory_field(&gameInfo);
