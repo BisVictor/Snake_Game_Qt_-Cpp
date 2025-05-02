@@ -114,18 +114,22 @@ void allocate_memory_for_field(GameInfo_t* gameInfo) {
   }
 }
 
-void allocate_memory_for_snake(GameInfo_t* gameInfo) {
-  gameInfo->snake = new int*[FIELD_HEIGHT];
-  for (int i = 0; i < FIELD_HEIGHT; i++) {
-    gameInfo->snake[i] = new int[FIELD_WIDTH];
-  }
-
-  // Заполнение игрового поля
+void filling_playing_field(GameInfo_t* gameInfo) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
       gameInfo->snake[i][j] = 0;  // Внутреннее поле
     }
   }
+}
+
+void allocate_memory_for_snake(GameInfo_t* gameInfo) {
+  gameInfo->snake = new int*[FIELD_HEIGHT];
+  for (int i = 0; i < FIELD_HEIGHT; i++) {
+    gameInfo->snake[i] = new int[FIELD_WIDTH];
+  }
+  filling_playing_field(gameInfo);
+
+  // Заполнение игрового поля
 }
 
 void free_memory_field(GameInfo_t* gameInfo) {
