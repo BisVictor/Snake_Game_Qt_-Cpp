@@ -18,6 +18,10 @@ typedef struct {
   int** next;
   int* tail_x;
   int* tail_y;
+  int n_tail;
+  int key;
+  int x;
+  int y;
   int prev_key;
   int score;
   int high_score;
@@ -184,11 +188,61 @@ GameInfo_t updateCurrentState(GameInfo_t gameInfo) {
   return game_info_update;
 }
 
-/* GameInfo_t start_screen(GameInfo_t gameInfo) {
-  mvprintw(5, 5, "Start the game");
-} */
+void fix_buttons(GameInfo_t* gameInfo) {
+  if ((gameInfo->key == KEY_UP || gameInfo->key == KEY_DOWN) &&
+      (gameInfo->prev_key == KEY_UP || gameInfo->prev_key == KEY_DOWN)) {
+    /* do nothing */
+  }
+  // условия когда повторяется кнопка или кнопка в обратную сторону
+  else if ((gameInfo->key == KEY_LEFT || gameInfo->key == KEY_RIGHT) &&
+           (gameInfo->prev_key == KEY_LEFT ||
+            gameInfo->prev_key == KEY_RIGHT)) {
+    /* do nothing */
+  } else {
+    gameInfo->prev_key = gameInfo->key;
+    gameInfo->pause = 0;
+  }
+}
+
+void controller(GameInfo_t* gameInfo) {
+  gameInfo->key = getch();
+  if (gameInfo->key != -1) {
+    // Проверяем кнопки на повторение
+    fix_buttons(gameInfo);
+  }
+  gameInfo->tail_x[0] = gameInfo->x;  // Координаты новой головы
+  gameInfo->tail_y[0] = gameInfo->y;
+  switch (gameInfo->prev_key) {
+    case KEY_UP:
+      gameInfo->y--;
+      break;
+    case KEY_DOWN:
+      gameInfo->y++;
+      break;
+    case KEY_LEFT:
+      gameInfo->x--;
+      break;
+    case KEY_RIGHT:
+      gameInfo->x++;
+      break;
+    default:
+      break;
+  }
+  // Новое положение головы змейки
+  gameInfo->snake[gameInfo->y][gameInfo->x] = 1;
+}
+
+void game_logic(GameInfo_t* gameInfo) {}
 
 int main() {
+  // Инициализация ncurses
+  initscr();
+  cbreak();
+  noecho();
+  curs_set(0);
+  keypad(stdscr, TRUE);  // Включаем поддержку стрелок
+  nodelay(stdscr, TRUE);
+
   GameInfo_t gameInfo;
 
   // Инициализация полей структуры
@@ -198,64 +252,27 @@ int main() {
   gameInfo.level = 1;
   gameInfo.speed = 1;
   gameInfo.pause = 1;
-
   gameInfo.tail_x = new int[100]();
   gameInfo.tail_y = new int[100]();
+  gameInfo.y = 18;
+  gameInfo.x = 5;
+  gameInfo.n_tail = 4;
+  int user_input = Start;
+  gameInfo.key = -1;
 
-  // Выделение памяти для игрового поля
+  // Выделение памяти для игрового поля и змейки
   allocate_memory_for_field(&gameInfo);
   allocate_memory_for_snake(&gameInfo);
 
-  // Инициализация ncurses
-  initscr();
-  cbreak();
-  noecho();
-  curs_set(0);
-  keypad(stdscr, TRUE);  // Включаем поддержку стрелок
-  nodelay(stdscr, TRUE);
-
-  int y = 18;
-  int x = 5;
-  int n_tail = 4;
-  int user_input = Start;
-  gameInfo.prev_key = -1;
-  int key = 0;
-
-  while (y > 0 && waitHalfSecond()) {  // Добавили проверку границы
-
+  while (gameInfo.y > 0 && waitHalfSecond()) {  // Добавили проверку границы
     filling_playing_field(&gameInfo);
-    // gameInfo.pause = 1;
-    key = getch();
-    if (key != -1) {  // Если клавиша была нажата
-      gameInfo.prev_key = key;
-      gameInfo.pause = 0;
-    }
+    controller(&gameInfo);
 
-    for (int i = n_tail - 1; i > 0; i--) {
+    for (int i = gameInfo.n_tail - 1; i > 0; i--) {
       gameInfo.tail_x[i] = gameInfo.tail_x[i - 1];
       gameInfo.tail_y[i] = gameInfo.tail_y[i - 1];
     }
 
-    gameInfo.tail_x[0] = x;  // Координаты новой головы
-    gameInfo.tail_y[0] = y;
-    switch (gameInfo.prev_key) {
-      case KEY_UP:
-        y--;
-        break;
-      case KEY_DOWN:
-        y++;
-        break;
-      case KEY_LEFT:
-        x--;
-        break;
-      case KEY_RIGHT:
-        x++;
-        break;
-      default:
-        break;
-    }
-
-    gameInfo.snake[y][x] = 1;
     print_field_n(updateCurrentState(gameInfo));
   }
 
