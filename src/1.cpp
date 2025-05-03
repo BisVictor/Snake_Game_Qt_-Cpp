@@ -78,6 +78,16 @@ void print_field_n(GameInfo_t game_info_update) {
     // std::cout << "ss" << std::endl;
     printw("\n");
   }
+  // const char* text = "Start Game";
+  mvprintw(0, 27, "Game status:");
+  const char* game_status = nullptr;
+  if (game_info_update.pause == 0) {
+    game_status = "The game has started";
+  } else {
+    game_status = "Pause";
+  }
+
+  mvprintw(1, 27, "%s", game_status);
 
   refresh();
 }
@@ -91,11 +101,11 @@ void print_field(GameInfo_t game_info_update) {
         printf("  ");
       }
     }
-    printf("\n");
+    // printf("\n");
   }
   printf("\n");
 }
-// @brief выделение памяти
+// @brief Выделение памяти
 void allocate_memory_for_field(GameInfo_t* gameInfo) {
   gameInfo->field = new int*[FIELD_HEIGHT];
   for (int i = 0; i < FIELD_HEIGHT; i++) {
@@ -166,9 +176,17 @@ GameInfo_t updateCurrentState(GameInfo_t gameInfo) {
       game_info_update.field[gameInfo.tail_y[i]][gameInfo.tail_x[i]] = 1;
     }
   }
+  game_info_update.pause = gameInfo.pause;
+  game_info_update.high_score = gameInfo.high_score;
+  game_info_update.level = gameInfo.level;
+  game_info_update.score = gameInfo.score;
 
   return game_info_update;
 }
+
+/* GameInfo_t start_screen(GameInfo_t gameInfo) {
+  mvprintw(5, 5, "Start the game");
+} */
 
 int main() {
   GameInfo_t gameInfo;
@@ -179,14 +197,14 @@ int main() {
   gameInfo.high_score = 0;
   gameInfo.level = 1;
   gameInfo.speed = 1;
-  gameInfo.pause = 0;
+  gameInfo.pause = 1;
 
   gameInfo.tail_x = new int[100]();
-
   gameInfo.tail_y = new int[100]();
 
   // Выделение памяти для игрового поля
   allocate_memory_for_field(&gameInfo);
+  allocate_memory_for_snake(&gameInfo);
 
   // Инициализация ncurses
   initscr();
@@ -201,14 +219,16 @@ int main() {
   int n_tail = 4;
   int user_input = Start;
   gameInfo.prev_key = -1;
-
   int key = 0;
-  while (y > 0 && waitHalfSecond()) {  // Добавили проверку границы
-    allocate_memory_for_snake(&gameInfo);
 
+  while (y > 0 && waitHalfSecond()) {  // Добавили проверку границы
+
+    filling_playing_field(&gameInfo);
+    // gameInfo.pause = 1;
     key = getch();
     if (key != -1) {  // Если клавиша была нажата
       gameInfo.prev_key = key;
+      gameInfo.pause = 0;
     }
 
     for (int i = n_tail - 1; i > 0; i--) {
@@ -234,19 +254,17 @@ int main() {
       default:
         break;
     }
-    // continuation_of_movement(&gameInfo, &x, &y);
+
     gameInfo.snake[y][x] = 1;
     print_field_n(updateCurrentState(gameInfo));
-    free_memory_snake(&gameInfo);
   }
 
-  getch();  // Ждем нажатия клавиши перед выходом
-
+  getch();   // Ждем нажатия клавиши перед выходом
   endwin();  // Завершаем ncurses */
 
   // Освобождение памяти
   free_memory_field(&gameInfo);
-  // free_memory_snake(&gameInfo);
+  free_memory_snake(&gameInfo);
   delete[] gameInfo.tail_x;
   delete[] gameInfo.tail_y;
 
