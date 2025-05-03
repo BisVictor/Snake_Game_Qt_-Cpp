@@ -28,6 +28,7 @@ typedef struct {
   int level;
   int speed;
   int pause;
+  int debug;
 } GameInfo_t;
 
 typedef enum {
@@ -79,24 +80,30 @@ void print_field_n(GameInfo_t game_info_update) {
         printw("  ");
       }
     }
-    // std::cout << "ss" << std::endl;
     printw("\n");
   }
-  // const char* text = "Start Game";
   mvprintw(0, 27, "Game status:");
   const char* game_status = nullptr;
+  const char* game_status2 = nullptr;
   if (game_info_update.pause == 0) {
     game_status = "The game has started";
   } else {
     game_status = "Pause";
   }
-
   mvprintw(1, 27, "%s", game_status);
+
+  if (game_info_update.debug == 0) {
+    game_status2 = "Debug == 0";
+  } else {
+    game_status2 = "Debug != 0";
+  }
+  // mvprintw(20, 27, "Game status:");
+  mvprintw(21, 27, "%s", game_status2);
 
   refresh();
 }
 
-void print_field(GameInfo_t game_info_update) {
+/* void print_field(GameInfo_t game_info_update) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
       if (game_info_update.field[i][j] > 0) {
@@ -108,7 +115,7 @@ void print_field(GameInfo_t game_info_update) {
     // printf("\n");
   }
   printf("\n");
-}
+} */
 // @brief Выделение памяти
 void allocate_memory_for_field(GameInfo_t* gameInfo) {
   gameInfo->field = new int*[FIELD_HEIGHT];
@@ -184,8 +191,32 @@ GameInfo_t updateCurrentState(GameInfo_t gameInfo) {
   game_info_update.high_score = gameInfo.high_score;
   game_info_update.level = gameInfo.level;
   game_info_update.score = gameInfo.score;
+  game_info_update.debug = gameInfo.debug;
 
   return game_info_update;
+}
+
+void snake_movement(GameInfo_t* gameInfo) {
+  gameInfo->tail_x[0] = gameInfo->x;  // Координаты головы
+  gameInfo->tail_y[0] = gameInfo->y;
+  switch (gameInfo->prev_key) {
+    case KEY_UP:
+      gameInfo->y--;
+      break;
+    case KEY_DOWN:
+      gameInfo->y++;
+      break;
+    case KEY_LEFT:
+      gameInfo->x--;
+      break;
+    case KEY_RIGHT:
+      gameInfo->x++;
+      break;
+    default:
+      break;
+  }
+  // Новое координаты головы змейки
+  gameInfo->snake[gameInfo->y][gameInfo->x] = 1;
 }
 
 void fix_buttons(GameInfo_t* gameInfo) {
@@ -210,29 +241,19 @@ void controller(GameInfo_t* gameInfo) {
     // Проверяем кнопки на повторение
     fix_buttons(gameInfo);
   }
-  gameInfo->tail_x[0] = gameInfo->x;  // Координаты новой головы
-  gameInfo->tail_y[0] = gameInfo->y;
-  switch (gameInfo->prev_key) {
-    case KEY_UP:
-      gameInfo->y--;
-      break;
-    case KEY_DOWN:
-      gameInfo->y++;
-      break;
-    case KEY_LEFT:
-      gameInfo->x--;
-      break;
-    case KEY_RIGHT:
-      gameInfo->x++;
-      break;
-    default:
-      break;
-  }
-  // Новое положение головы змейки
-  gameInfo->snake[gameInfo->y][gameInfo->x] = 1;
 }
 
-void game_logic(GameInfo_t* gameInfo) {}
+int collision_check(GameInfo_t gameInfo) {
+  int collision = 0;
+  if (gameInfo.x <= 0 || gameInfo.x >= FIELD_WIDTH - 1 || gameInfo.y <= 0 ||
+      gameInfo.y >= FIELD_HEIGHT - 1 ||
+      gameInfo.snake[gameInfo.y][gameInfo.x] == 1) {
+    collision = 1;  // Конец игры
+  }
+  return collision;
+}
+
+void game_logic(GameInfo_t* gameInfo);
 
 int main() {
   // Инициализация ncurses
@@ -257,16 +278,18 @@ int main() {
   gameInfo.y = 18;
   gameInfo.x = 5;
   gameInfo.n_tail = 4;
-  int user_input = Start;
   gameInfo.key = -1;
 
   // Выделение памяти для игрового поля и змейки
   allocate_memory_for_field(&gameInfo);
   allocate_memory_for_snake(&gameInfo);
 
-  while (gameInfo.y > 0 && waitHalfSecond()) {  // Добавили проверку границы
+  while (waitHalfSecond()) {  // Добавили проверку границы
     filling_playing_field(&gameInfo);
     controller(&gameInfo);
+    if (!collision_check(gameInfo)) {
+      snake_movement(&gameInfo);
+    }
 
     for (int i = gameInfo.n_tail - 1; i > 0; i--) {
       gameInfo.tail_x[i] = gameInfo.tail_x[i - 1];
