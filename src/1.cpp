@@ -15,7 +15,7 @@ bool waitHalfSecond() {
 typedef struct {
   int** field;
   int** snake;
-  int** next;
+  int** next;  // яблоко
   int* tail_x;
   int* tail_y;
   int n_tail;
@@ -135,6 +135,23 @@ void allocate_memory_for_field(GameInfo_t* gameInfo) {
   }
 }
 
+void allocate_memory_for_next(GameInfo_t* gameInfo) {
+  gameInfo->next = new int*[FIELD_HEIGHT];
+  for (int i = 0; i < FIELD_HEIGHT; i++) {
+    gameInfo->next[i] = new int[FIELD_WIDTH];
+  }
+  // Заполнение игрового поля
+  for (int i = 0; i < FIELD_HEIGHT; i++) {
+    for (int j = 0; j < FIELD_WIDTH; j++) {
+      if (i == 0 || i == FIELD_HEIGHT - 1 || j == 0 || j == FIELD_WIDTH - 1) {
+        gameInfo->next[i][j] = 1;  // Граница
+      } else {
+        gameInfo->next[i][j] = 0;  // Внутреннее поле
+      }
+    }
+  }
+}
+
 void filling_playing_field(GameInfo_t* gameInfo) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
@@ -160,6 +177,13 @@ void free_memory_field(GameInfo_t* gameInfo) {
   delete[] gameInfo->field;
 }
 
+void free_memory_next(GameInfo_t* gameInfo) {
+  for (int i = 0; i < FIELD_HEIGHT; i++) {
+    delete[] gameInfo->next[i];  // Исправлено: правильное количество строк
+  }
+  delete[] gameInfo->next;
+}
+
 void free_memory_snake(GameInfo_t* gameInfo) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     delete[] gameInfo->snake[i];  // Исправлено: правильное количество строк
@@ -173,7 +197,8 @@ GameInfo_t updateCurrentState(GameInfo_t gameInfo) {
 
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
-      if (gameInfo.field[i][j] > 0 || gameInfo.snake[i][j] > 0) {
+      if (gameInfo.field[i][j] > 0 || gameInfo.snake[i][j] > 0 ||
+          gameInfo.next[i][j] > 0) {
         game_info_update.field[i][j] = 1;
       } else {
         game_info_update.field[i][j] = 0;
@@ -253,6 +278,44 @@ int collision_check(GameInfo_t gameInfo) {
   return collision;
 }
 
+/* bool render_field(GameInfo_t gameInfo) {
+  bool collision;
+  for (int i = 0; i < FIELD_HEIGHT; i++) {
+    for (int j = 0; j < FIELD_WIDTH; j++) {
+      if ((gameInfo.field[i][j] > 0 || gameInfo.snake[i][j] > 0) &&
+          gameInfo.next[i][j] > 0) {
+        bool collision = true;
+      } else {
+        bool collision = false;
+      }
+    }
+  }
+  return collision;
+} */
+
+void generate_apple_in_field(GameInfo_t* gameInfo, int* apple_height,
+                             int* apple_width) {
+  bool valid_position = false;
+  static bool initialized = false;
+  if (!initialized) {
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    initialized = true;
+  }
+
+  // Генерируем случайные координаты с учётом рамки
+  while (!valid_position) {
+    *apple_height = 1 + std::rand() % (FIELD_HEIGHT - 2);
+    *apple_width = 1 + std::rand() % (FIELD_WIDTH - 2);
+
+    // Проверяем, что на этой позиции нет змейки и нет другого яблока
+    if (gameInfo->field[*apple_height][*apple_width] == 0 &&
+        gameInfo->snake[*apple_height][*apple_width] == 0) {
+      valid_position = true;
+    }
+  }
+  gameInfo->next[*apple_height][*apple_width] = 1;
+}
+
 void game_logic(GameInfo_t* gameInfo);
 
 int main() {
@@ -280,9 +343,15 @@ int main() {
   gameInfo.n_tail = 4;
   gameInfo.key = -1;
 
+  int apple_height = 0;
+  int apple_width = 0;
+
   // Выделение памяти для игрового поля и змейки
   allocate_memory_for_field(&gameInfo);
+  allocate_memory_for_next(&gameInfo);
   allocate_memory_for_snake(&gameInfo);
+
+  generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
 
   while (waitHalfSecond()) {  // Добавили проверку границы
     filling_playing_field(&gameInfo);
@@ -290,6 +359,12 @@ int main() {
     if (!collision_check(gameInfo)) {
       snake_movement(&gameInfo);
     }
+    if (gameInfo.y == apple_height && gameInfo.x == apple_width) {
+      generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
+      gameInfo.n_tail++;
+    }
+
+    // generate_apple_in_field(&gameInfo);
 
     for (int i = gameInfo.n_tail - 1; i > 0; i--) {
       gameInfo.tail_x[i] = gameInfo.tail_x[i - 1];
@@ -304,6 +379,7 @@ int main() {
 
   // Освобождение памяти
   free_memory_field(&gameInfo);
+  free_memory_next(&gameInfo);
   free_memory_snake(&gameInfo);
   delete[] gameInfo.tail_x;
   delete[] gameInfo.tail_y;
