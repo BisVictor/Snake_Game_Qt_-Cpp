@@ -278,20 +278,13 @@ int collision_check(GameInfo_t gameInfo) {
   return collision;
 }
 
-/* bool render_field(GameInfo_t gameInfo) {
-  bool collision;
-  for (int i = 0; i < FIELD_HEIGHT; i++) {
-    for (int j = 0; j < FIELD_WIDTH; j++) {
-      if ((gameInfo.field[i][j] > 0 || gameInfo.snake[i][j] > 0) &&
-          gameInfo.next[i][j] > 0) {
-        bool collision = true;
-      } else {
-        bool collision = false;
-      }
+void clear_apple(GameInfo_t* gameInfo) {
+  for (int i = 0; i < FIELD_HEIGHT; ++i) {
+    for (int j = 0; j < FIELD_WIDTH; ++j) {
+      gameInfo->next[i][j] = 0;
     }
   }
-  return collision;
-} */
+}
 
 void generate_apple_in_field(GameInfo_t* gameInfo, int* apple_height,
                              int* apple_width) {
@@ -360,8 +353,9 @@ int main() {
       snake_movement(&gameInfo);
     }
     if (gameInfo.y == apple_height && gameInfo.x == apple_width) {
-      generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
+      clear_apple(&gameInfo);
       gameInfo.n_tail++;
+      generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
     }
 
     // generate_apple_in_field(&gameInfo);
