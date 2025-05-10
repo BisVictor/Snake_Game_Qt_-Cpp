@@ -103,20 +103,7 @@ void print_field_n(GameInfo_t game_info_update) {
   refresh();
 }
 
-/* void print_field(GameInfo_t game_info_update) {
-  for (int i = 0; i < FIELD_HEIGHT; i++) {
-    for (int j = 0; j < FIELD_WIDTH; j++) {
-      if (game_info_update.field[i][j] > 0) {
-        printf("##");
-      } else {
-        printf("  ");
-      }
-    }
-    // printf("\n");
-  }
-  printf("\n");
-} */
-// @brief Выделение памяти
+// @brief Выделение памяти для поля (field)
 void allocate_memory_for_field(GameInfo_t* gameInfo) {
   gameInfo->field = new int*[FIELD_HEIGHT];
   for (int i = 0; i < FIELD_HEIGHT; i++) {
