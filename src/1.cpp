@@ -87,8 +87,10 @@ void print_field_n(GameInfo_t game_info_update) {
   const char* game_status2 = nullptr;
   if (game_info_update.pause == 0) {
     game_status = "The game has started";
-  } else {
+  } else if (game_info_update.pause == 1) {
     game_status = "Pause";
+  } else {
+    game_status = "Game over";
   }
   mvprintw(1, 27, "%s", game_status);
 
@@ -159,21 +161,21 @@ void allocate_memory_for_snake(GameInfo_t* gameInfo) {
 
 void free_memory_field(GameInfo_t* gameInfo) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
-    delete[] gameInfo->field[i];  // Исправлено: правильное количество строк
+    delete[] gameInfo->field[i];
   }
   delete[] gameInfo->field;
 }
 
 void free_memory_next(GameInfo_t* gameInfo) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
-    delete[] gameInfo->next[i];  // Исправлено: правильное количество строк
+    delete[] gameInfo->next[i];
   }
   delete[] gameInfo->next;
 }
 
 void free_memory_snake(GameInfo_t* gameInfo) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
-    delete[] gameInfo->snake[i];  // Исправлено: правильное количество строк
+    delete[] gameInfo->snake[i];
   }
   delete[] gameInfo->snake;
 }
@@ -262,6 +264,12 @@ int collision_check(GameInfo_t gameInfo) {
       gameInfo.snake[gameInfo.y][gameInfo.x] == 1) {
     collision = 1;  // Конец игры
   }
+  for (int i = gameInfo.n_tail; i > 0; i--) {
+    if (gameInfo.x == gameInfo.tail_x[i]) {
+      collision = 1;  // Конец игры
+    }
+  }
+
   return collision;
 }
 
@@ -318,7 +326,13 @@ int main() {
   gameInfo.pause = 1;
   gameInfo.tail_x = new int[100]();
   gameInfo.tail_y = new int[100]();
-  gameInfo.y = 18;
+
+  for (int i = 0; i < 4; i++) {
+    gameInfo.tail_x[i] = 5;
+    gameInfo.tail_y[i] = 13 + i + 1;
+  }
+
+  gameInfo.y = 13;
   gameInfo.x = 5;
   gameInfo.n_tail = 4;
   gameInfo.key = -1;
@@ -338,6 +352,8 @@ int main() {
     controller(&gameInfo);
     if (!collision_check(gameInfo)) {
       snake_movement(&gameInfo);
+    } else {
+      gameInfo.pause = 2;
     }
     if (gameInfo.y == apple_height && gameInfo.x == apple_width) {
       clear_apple(&gameInfo);
