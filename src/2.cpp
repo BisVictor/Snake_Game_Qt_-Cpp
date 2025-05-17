@@ -122,6 +122,11 @@ class SnakeGame {
   void free_memory_field(GameInfo_t* gameInfo);
   void free_memory_next(GameInfo_t* gameInfo);
   void free_memory_snake(GameInfo_t* gameInfo);
+  void generate_apple_in_field(GameInfo_t* gameInfo, int* apple_height,
+                               int* apple_width);
+  void controller(GameInfo_t* gameInfo);
+  void fix_buttons(GameInfo_t* gameInfo);
+  int collision_check(GameInfo_t gameInfo);
 
  public:
   SnakeGame();
@@ -202,6 +207,70 @@ void SnakeGame::free_memory_snake(GameInfo_t* gameInfo) {
   delete[] gameInfo->snake;
 }
 
+void SnakeGame::generate_apple_in_field(GameInfo_t* gameInfo, int* apple_height,
+                                        int* apple_width) {
+  bool valid_position = false;
+  static bool initialized = false;
+  if (!initialized) {
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    initialized = true;
+  }
+
+  // Генерируем случайные координаты с учётом рамки
+  while (!valid_position) {
+    *apple_height = 1 + std::rand() % (FIELD_HEIGHT - 2);
+    *apple_width = 1 + std::rand() % (FIELD_WIDTH - 2);
+
+    // Проверяем, что на этой позиции нет змейки и нет другого яблока
+    if (gameInfo->field[*apple_height][*apple_width] == 0 &&
+        gameInfo->snake[*apple_height][*apple_width] == 0) {
+      valid_position = true;
+    }
+  }
+  gameInfo->next[*apple_height][*apple_width] = 1;
+}
+
+void SnakeGame::fix_buttons(GameInfo_t* gameInfo) {
+  if ((gameInfo->key == KEY_UP || gameInfo->key == KEY_DOWN) &&
+      (gameInfo->prev_key == KEY_UP || gameInfo->prev_key == KEY_DOWN)) {
+    /* do nothing */
+  }
+  // условия когда повторяется кнопка или кнопка в обратную сторону
+  else if ((gameInfo->key == KEY_LEFT || gameInfo->key == KEY_RIGHT) &&
+           (gameInfo->prev_key == KEY_LEFT ||
+            gameInfo->prev_key == KEY_RIGHT)) {
+    /* do nothing */
+  } else {
+    gameInfo->prev_key = gameInfo->key;
+    gameInfo->pause = 0;
+  }
+}
+
+void SnakeGame::controller(GameInfo_t* gameInfo) {
+  gameInfo->key = getch();
+  if (gameInfo->key != -1) {
+    // Проверяем кнопки на повторение
+    SnakeGame::fix_buttons(gameInfo);
+  }
+}
+
+int SnakeGame::collision_check(GameInfo_t gameInfo) {
+  int collision = 0;
+  if (gameInfo.x <= 0 || gameInfo.x >= FIELD_WIDTH - 1 || gameInfo.y <= 0 ||
+      gameInfo.y >= FIELD_HEIGHT - 1 ||
+      gameInfo.snake[gameInfo.y][gameInfo.x] == 1) {
+    collision = 1;  // Конец игры
+  }
+  for (int i = gameInfo.n_tail; i > 0; i--) {
+    if (gameInfo.x == gameInfo.tail_x[i] && gameInfo.y == gameInfo.tail_y[i] &&
+        gameInfo.n_tail > 4) {
+      collision = 1;  // Конец игры
+    }
+  }
+
+  return collision;
+}
+
 // Конструктор SnakeGame
 SnakeGame::SnakeGame(/* args */) {
   // инициализируем начальное состояние игры
@@ -232,4 +301,47 @@ SnakeGame::~SnakeGame() {
   free_memory_field(&gameInfo);
   free_memory_next(&gameInfo);
   free_memory_snake(&gameInfo);
+}
+
+void SnakeGame::run() {
+  // Инициализация ncurses
+  initscr();
+  cbreak();
+  noecho();
+  curs_set(0);
+  keypad(stdscr, TRUE);
+  nodelay(stdscr, TRUE);
+
+  allocate_memory_for_field(&gameInfo);
+  allocate_memory_for_next(&gameInfo);
+  allocate_memory_for_snake(&gameInfo);
+
+  generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
+
+  while (waitHalfSecond()) {
+    filling_playing_field(&gameInfo);
+    controller(&gameInfo);
+
+    if (!collision_check(gameInfo)) {
+      snake_movement(&gameInfo);
+    } else {
+      gameInfo.pause = 2;
+    }
+
+    if (gameInfo.y == apple_height && gameInfo.x == apple_width) {
+      clear_apple(&gameInfo);
+      gameInfo.n_tail++;
+      generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
+    }
+
+    for (int i = gameInfo.n_tail - 1; i > 0; i--) {
+      gameInfo.tail_x[i] = gameInfo.tail_x[i - 1];
+      gameInfo.tail_y[i] = gameInfo.tail_y[i - 1];
+    }
+
+    print_field_n(updateCurrentState(gameInfo));
+  }
+
+  getch();   // Ждём нажатия перед выходом
+  endwin();  // Завершение ncurses
 }
