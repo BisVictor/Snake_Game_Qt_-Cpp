@@ -22,15 +22,16 @@ typedef struct {
   int* tail_y;
   int n_tail;
   int key;
+  int prev_key;
   int x;
   int y;
-  int prev_key;
   int score;
   int high_score;
   int level;
   int speed;
   int pause;
   int debug;
+  bool first_run;
 } GameInfo_t;
 
 typedef enum {
@@ -68,23 +69,22 @@ void print_field_n(GameInfo_t game_info_update) {
   }
   mvprintw(0, 27, "Game status:");
   const char* game_status = nullptr;
-  const char* game_status2 = nullptr;
-  if (game_info_update.pause == 0) {
-    game_status = "The game has started";
-  } else if (game_info_update.pause == 1) {
-    game_status = "Pause";
-  } else {
-    game_status = "Game over";
+  mvprintw(0, 27, "Game status: ");
+  switch (game_info_update.pause) {
+    case 0:
+      game_status = "Play";
+      break;
+    case 1:
+      game_status = "Pause (Press Enter to start)";
+      break;
+    case 2:
+      game_status = "Game Over";
+      break;
+    default:
+      game_status = "Unknown";
+      break;
   }
   mvprintw(1, 27, "%s", game_status);
-
-  if (game_info_update.debug == 0) {
-    game_status2 = "Debug == 0";
-  } else {
-    game_status2 = "Debug != 0";
-  }
-  // mvprintw(20, 27, "Game status:");
-  mvprintw(21, 27, "%s", game_status2);
 
   refresh();
 }
@@ -107,7 +107,7 @@ class SnakeGame {
   void free_memory_snake(GameInfo_t* gameInfo);
   void generate_apple_in_field(GameInfo_t* gameInfo, int* apple_height,
                                int* apple_width);
-  void controller(GameInfo_t* gameInfo);
+  void controller(GameInfo_t* gameInfo, GameState* state);
   bool fix_buttons(UserAction_t newDir, UserAction_t prevDir);
   int collision_check(GameInfo_t gameInfo);
   void snake_movement(GameInfo_t* gameInfo);
@@ -115,6 +115,7 @@ class SnakeGame {
   GameInfo_t updateCurrentState(GameInfo_t gameInfo);
   UserAction_t get_signal(int user_input);
   void initialization();
+  void reset();
 
  public:
   SnakeGame();
@@ -262,8 +263,17 @@ bool SnakeGame::fix_buttons(UserAction_t newDir, UserAction_t prevDir) {
   return true;
 }
 
-void SnakeGame::controller(GameInfo_t* gameInfo) {
-  int ch = getch();                                 // Считываем ввод
+void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
+  int ch;
+
+  // Первый запуск: эмулируем Enter
+  if (gameInfo->first_run) {
+    ch = '\n';
+    gameInfo->first_run = false;
+  } else {
+    ch = getch();  // Считываем ввод
+  }
+
   UserAction_t action = SnakeGame::get_signal(ch);  // Преобразуем
 
   if (action == None) return;  // Ничего не нажато
@@ -273,13 +283,20 @@ void SnakeGame::controller(GameInfo_t* gameInfo) {
     return;
   }
 
-  if (action == Pause) {
+  if (action == Pause && gameInfo->pause == 0) {
     gameInfo->pause = 1;  // Пауза
+    *state = GameState::PAUSE;
+
+    return;
+  } else if (action == Pause && gameInfo->pause == 1) {
+    gameInfo->pause = 0;  // Пауза отжата
+    *state = GameState::PLAY;
     return;
   }
 
-  if (action == Action) {
-    gameInfo->pause = 0;  // играть
+  else if (action == Pause && gameInfo->pause == 2) {
+    gameInfo->pause = 0;  // Пауза отжата
+    *state = GameState::PLAY;
     return;
   }
 
@@ -290,7 +307,7 @@ void SnakeGame::controller(GameInfo_t* gameInfo) {
                                SnakeGame::get_signal(gameInfo->prev_key))) {
       gameInfo->prev_key = ch;
       gameInfo->key = ch;
-      gameInfo->pause = 0;
+      // gameInfo->pause = 0;
     }
   }
 }
@@ -350,7 +367,7 @@ GameInfo_t SnakeGame::updateCurrentState(GameInfo_t gameInfo) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
       if (gameInfo.field[i][j] > 0 || gameInfo.snake[i][j] > 0 ||
-          gameInfo.next[i][j] > 0) {
+          gameInfo.next[i][j] > 0 || (gameInfo.y == i && gameInfo.x == j)) {
         game_info_update.field[i][j] = 1;
       } else {
         game_info_update.field[i][j] = 0;
@@ -359,7 +376,6 @@ GameInfo_t SnakeGame::updateCurrentState(GameInfo_t gameInfo) {
   }
 
   for (int i = 0; i < 100; i++) {
-    // std::cout << gameInfo.tail_x[i] << "and" << gameInfo.tail_y[i];
     if (gameInfo.tail_x[i] > 0 && gameInfo.tail_y[i] > 0) {
       game_info_update.field[gameInfo.tail_y[i]][gameInfo.tail_x[i]] = 1;
     }
@@ -389,6 +405,8 @@ void SnakeGame::initialization() {
   generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
 }
 
+void SnakeGame::reset() {}
+
 // Конструктор SnakeGame
 SnakeGame::SnakeGame(/* args */) {
   // инициализируем начальное состояние игры
@@ -398,14 +416,16 @@ SnakeGame::SnakeGame(/* args */) {
   gameInfo.high_score = 0;
   gameInfo.level = 1;
   gameInfo.speed = 1;
-  gameInfo.pause = 1;  // пауза, 0 - игра, 2 - конец игры
+  gameInfo.pause = 1;  //  0 - игра, 1- пауза, 2 - конец игры
 
   gameInfo.tail_x = new int[100]();
   gameInfo.tail_y = new int[100]();
   gameInfo.x = 5;       // Голова змейки
   gameInfo.y = 13;      // Голова змейки
   gameInfo.n_tail = 4;  // Длина хвоста
-  gameInfo.key = -1;
+  gameInfo.key = KEY_UP;
+  gameInfo.prev_key = KEY_UP;
+  gameInfo.first_run = true;
 }
 
 // Деструктор SnakeGame
@@ -419,22 +439,27 @@ SnakeGame::~SnakeGame() {
 
 void SnakeGame::run() {
   // initscr();
-  cbreak();
-  noecho();
+  // cbreak();
+  // noecho();
   while (true) {
     switch (state) {
       case GameState::MENU:
-        system("cls");
         std::cout << "==== SNAKE GAME ====\n";
         std::cout << "Press ENTER to start\n";
         if (std::cin.get() == 10) state = GameState::PLAY;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         break;
       case GameState::PLAY:
         SnakeGame::initialization();
         while (waitHalfSecond()) {
           filling_playing_field(&gameInfo);
-          controller(&gameInfo);
+          controller(&gameInfo, &state);
+          if (gameInfo.pause == 1) {  // Pause
+            print_field_n(updateCurrentState(gameInfo));
+            continue;
+          } else if (gameInfo.pause == 2) {  // Quit
+            state = GameState::GAME_OVER;
+            // break;
+          }
 
           if (!collision_check(gameInfo)) {
             snake_movement(&gameInfo);
@@ -455,9 +480,23 @@ void SnakeGame::run() {
 
           print_field_n(updateCurrentState(gameInfo));
         }
-
         getch();   // Ждём нажатия перед выходом
         endwin();  // Завершение ncurses
+        break;
+      case GameState::PAUSE:
+        print_field_n(updateCurrentState(gameInfo));
+        controller(&gameInfo, &state);
+        break;
+      case GameState::GAME_OVER:
+        print_field_n(updateCurrentState(gameInfo));
+        controller(&gameInfo, &state);
+        if (state == GameState::PLAY) {
+          SnakeGame::~SnakeGame();
+          /* SnakeGame::SnakeGame();
+          SnakeGame::reset() */
+        }
+        break;
+
       default:
         break;
     }
