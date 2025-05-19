@@ -1,5 +1,3 @@
-// #include <conio.h>
-
 #include <ncurses.h>
 
 #include <chrono>
@@ -85,7 +83,6 @@ void print_field_n(GameInfo_t game_info_update) {
       break;
   }
   mvprintw(1, 27, "%s", game_status);
-
   refresh();
 }
 
@@ -405,7 +402,35 @@ void SnakeGame::initialization() {
   generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
 }
 
-void SnakeGame::reset() {}
+void SnakeGame::reset() {
+  // Освобождение выделенной памяти
+  delete[] gameInfo.tail_x;
+  delete[] gameInfo.tail_y;
+  free_memory_field(&gameInfo);
+  free_memory_next(&gameInfo);
+  free_memory_snake(&gameInfo);
+
+  // Сброс параметров игры
+  gameInfo.next = nullptr;
+  gameInfo.score = 0;
+  gameInfo.level = 1;
+  gameInfo.speed = 1;
+  gameInfo.pause = 1;
+
+  gameInfo.tail_x = new int[100]();
+  gameInfo.tail_y = new int[100]();
+  gameInfo.x = 5;
+  gameInfo.y = 13;
+  gameInfo.n_tail = 4;
+  gameInfo.key = KEY_UP;
+  gameInfo.prev_key = KEY_UP;
+  gameInfo.first_run = true;
+
+  state = GameState::MENU;
+
+  // Повторная инициализация
+  initialization();
+}
 
 // Конструктор SnakeGame
 SnakeGame::SnakeGame(/* args */) {
@@ -438,19 +463,20 @@ SnakeGame::~SnakeGame() {
 }
 
 void SnakeGame::run() {
-  // initscr();
-  // cbreak();
-  // noecho();
   while (true) {
     switch (state) {
       case GameState::MENU:
         std::cout << "==== SNAKE GAME ====\n";
         std::cout << "Press ENTER to start\n";
-        if (std::cin.get() == 10) state = GameState::PLAY;
+        if (std::cin.get() == 10) {
+          state = GameState::PLAY;
+          SnakeGame::reset();
+        }
         break;
       case GameState::PLAY:
         SnakeGame::initialization();
-        while (waitHalfSecond()) {
+        while (waitHalfSecond() &&
+               (state == GameState::PLAY || state == GameState::PAUSE)) {
           filling_playing_field(&gameInfo);
           controller(&gameInfo, &state);
           if (gameInfo.pause == 1) {  // Pause
@@ -488,12 +514,13 @@ void SnakeGame::run() {
         controller(&gameInfo, &state);
         break;
       case GameState::GAME_OVER:
-        print_field_n(updateCurrentState(gameInfo));
-        controller(&gameInfo, &state);
-        if (state == GameState::PLAY) {
-          SnakeGame::~SnakeGame();
-          /* SnakeGame::SnakeGame();
-          SnakeGame::reset() */
+        while (state == GameState::GAME_OVER) {
+          print_field_n(updateCurrentState(gameInfo));
+          controller(&gameInfo, &state);
+          if (state == GameState::PLAY) {
+            // getch();
+            endwin();
+          }
         }
         break;
 
