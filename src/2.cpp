@@ -1,3 +1,5 @@
+// #include <conio.h>
+
 #include <ncurses.h>
 
 #include <chrono>
@@ -83,6 +85,7 @@ void print_field_n(GameInfo_t game_info_update) {
       break;
   }
   mvprintw(1, 27, "%s", game_status);
+
   refresh();
 }
 
@@ -283,8 +286,8 @@ void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
   if (action == Pause && gameInfo->pause == 0) {
     gameInfo->pause = 1;  // Пауза
     *state = GameState::PAUSE;
-
     return;
+
   } else if (action == Pause && gameInfo->pause == 1) {
     gameInfo->pause = 0;  // Пауза отжата
     *state = GameState::PLAY;
@@ -470,7 +473,6 @@ void SnakeGame::run() {
         std::cout << "Press ENTER to start\n";
         if (std::cin.get() == 10) {
           state = GameState::PLAY;
-          SnakeGame::reset();
         }
         break;
       case GameState::PLAY:
@@ -514,15 +516,15 @@ void SnakeGame::run() {
         controller(&gameInfo, &state);
         break;
       case GameState::GAME_OVER:
-        while (state == GameState::GAME_OVER) {
-          print_field_n(updateCurrentState(gameInfo));
+        std::cout << "==== GAME OVER ====\n";
+        std::cout << "Press ENTER to restart\n";
+        while (true) {
           controller(&gameInfo, &state);
           if (state == GameState::PLAY) {
-            // getch();
-            endwin();
+            SnakeGame::reset();
+            break;
           }
         }
-        break;
 
       default:
         break;
