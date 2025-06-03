@@ -89,7 +89,7 @@ void print_field_n(GameInfo_t game_info_update) {
   refresh();
 }
 
-enum class GameState { MENU, PLAY, PAUSE, GAME_OVER };
+enum class GameState { MENU, PLAY, PAUSE, GAME_OVER, EXIT };
 
 class SnakeGame {
  private:
@@ -116,6 +116,9 @@ class SnakeGame {
   UserAction_t get_signal(int user_input);
   void initialization();
   void reset();
+  void game_state_menu(GameState* state, GameInfo_t* gameInfo);
+  void game_state_play(GameState* state, GameInfo_t* gameInfo);
+  void game_state_game_over(GameState* state, GameInfo_t* gameInfo);
 
  public:
   SnakeGame();
@@ -277,9 +280,8 @@ void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
   UserAction_t action = SnakeGame::get_signal(ch);  // Преобразуем
 
   if (action == None) return;  // Ничего не нажато
-
   if (action == Terminate) {
-    gameInfo->pause = 2;  // Завершение игры
+    *state = GameState::EXIT;
     return;
   }
 
@@ -297,6 +299,12 @@ void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
   else if (action == Pause && gameInfo->pause == 2) {
     gameInfo->pause = 0;  // Пауза отжата
     *state = GameState::PLAY;
+    return;
+  }
+
+  else if (action == Terminate &&
+           (gameInfo->pause == 1 || gameInfo->pause == 2)) {
+    gameInfo->pause = 3;  // Пауза отжата
     return;
   }
 
@@ -427,12 +435,72 @@ void SnakeGame::reset() {
   gameInfo.n_tail = 4;
   gameInfo.key = KEY_UP;
   gameInfo.prev_key = KEY_UP;
-  gameInfo.first_run = true;
+  gameInfo.first_run = false;
 
   state = GameState::MENU;
 
   // Повторная инициализация
   initialization();
+}
+
+// @brief Меню игры
+void SnakeGame::game_state_menu(GameState* state, GameInfo_t* gameInfo) {
+  std::cout << "==== SNAKE GAME ====\n";
+  std::cout << "Press ENTER to start\n";
+  std::cout << static_cast<int>(*state) << std::endl;
+  while (*state == GameState::MENU) {
+    SnakeGame::controller(gameInfo, state);
+  }
+}
+
+// @brief Запуск игры
+void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
+  SnakeGame::initialization();
+  while (waitHalfSecond() &&
+         (*state == GameState::PLAY || *state == GameState::PAUSE)) {
+    SnakeGame::filling_playing_field(gameInfo);
+    SnakeGame::controller(gameInfo, state);
+    if (gameInfo->pause == 1) {  // Pause
+      print_field_n(SnakeGame::updateCurrentState(*gameInfo));
+      continue;
+    } else if (gameInfo->pause == 2) {  // Quit
+      *state = GameState::GAME_OVER;
+      break;
+    }
+
+    if (!SnakeGame::collision_check(*gameInfo)) {
+      SnakeGame::snake_movement(gameInfo);
+    } else {
+      gameInfo->pause = 2;
+    }
+
+    if (gameInfo->y == apple_height && gameInfo->x == apple_width) {
+      SnakeGame::clear_apple(gameInfo);
+      gameInfo->n_tail++;
+      SnakeGame::generate_apple_in_field(gameInfo, &apple_height, &apple_width);
+    }
+
+    for (int i = gameInfo->n_tail - 1; i > 0; i--) {
+      gameInfo->tail_x[i] = gameInfo->tail_x[i - 1];
+      gameInfo->tail_y[i] = gameInfo->tail_y[i - 1];
+    }
+
+    print_field_n(SnakeGame::updateCurrentState(*gameInfo));
+  }
+  getch();   // Ждём нажатия перед выходом
+  endwin();  // Завершение ncurses
+}
+
+// @brief Конец игры
+void SnakeGame::game_state_game_over(GameState* state, GameInfo_t* gameInfo) {
+  std::cout << "==== SNAKE GAME OVER ====\n";
+  std::cout << "Press ENTER to restart\n";
+  while (*state == GameState::GAME_OVER) {
+    SnakeGame::controller(gameInfo, state);
+    if (*state == GameState::PLAY) {
+      SnakeGame::reset();
+    }
+  }
 }
 
 // Конструктор SnakeGame
@@ -466,65 +534,21 @@ SnakeGame::~SnakeGame() {
 }
 
 void SnakeGame::run() {
-  while (true) {
+  while (state != GameState::EXIT) {
     switch (state) {
       case GameState::MENU:
-        std::cout << "==== SNAKE GAME ====\n";
-        std::cout << "Press ENTER to start\n";
-        if (std::cin.get() == 10) {
-          state = GameState::PLAY;
-        }
+        SnakeGame::game_state_menu(&state, &gameInfo);
         break;
       case GameState::PLAY:
-        SnakeGame::initialization();
-        while (waitHalfSecond() &&
-               (state == GameState::PLAY || state == GameState::PAUSE)) {
-          filling_playing_field(&gameInfo);
-          controller(&gameInfo, &state);
-          if (gameInfo.pause == 1) {  // Pause
-            print_field_n(updateCurrentState(gameInfo));
-            continue;
-          } else if (gameInfo.pause == 2) {  // Quit
-            state = GameState::GAME_OVER;
-            // break;
-          }
-
-          if (!collision_check(gameInfo)) {
-            snake_movement(&gameInfo);
-          } else {
-            gameInfo.pause = 2;
-          }
-
-          if (gameInfo.y == apple_height && gameInfo.x == apple_width) {
-            clear_apple(&gameInfo);
-            gameInfo.n_tail++;
-            generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
-          }
-
-          for (int i = gameInfo.n_tail - 1; i > 0; i--) {
-            gameInfo.tail_x[i] = gameInfo.tail_x[i - 1];
-            gameInfo.tail_y[i] = gameInfo.tail_y[i - 1];
-          }
-
-          print_field_n(updateCurrentState(gameInfo));
-        }
-        getch();   // Ждём нажатия перед выходом
-        endwin();  // Завершение ncurses
+        SnakeGame::game_state_play(&state, &gameInfo);
         break;
       case GameState::PAUSE:
         print_field_n(updateCurrentState(gameInfo));
         controller(&gameInfo, &state);
         break;
       case GameState::GAME_OVER:
-        std::cout << "==== GAME OVER ====\n";
-        std::cout << "Press ENTER to restart\n";
-        while (true) {
-          controller(&gameInfo, &state);
-          if (state == GameState::PLAY) {
-            SnakeGame::reset();
-            break;
-          }
-        }
+        SnakeGame::game_state_game_over(&state, &gameInfo);
+        break;
 
       default:
         break;
