@@ -92,8 +92,6 @@ void print_field_n(GameInfo_t game_info_update) {
   }
   mvprintw(0, 27, "Game status:");
   const char* game_status = nullptr;
-  const char* game_score = nullptr;
-  game_score = "Game score:";
   mvprintw(0, 27, "Game status: ");
   switch (game_info_update.pause) {
     case 0:
@@ -112,11 +110,14 @@ void print_field_n(GameInfo_t game_info_update) {
   // print game status
   mvprintw(1, 27, "%s", game_status);
   // print game score
-  mvprintw(2, 27, "%s", game_score);
-  mvprintw(3, 27, "%d", game_info_update.score);
-
-  mvprintw(8, 27, "game_info_update.key");
-  mvprintw(9, 27, "%d", game_info_update.key);
+  mvprintw(2, 27, "%s", "Game level:");
+  mvprintw(3, 27, "%d", game_info_update.level);
+  // print game score
+  mvprintw(4, 27, "%s", "Game score:");
+  mvprintw(5, 27, "%d", game_info_update.score);
+  // print key
+  mvprintw(20, 27, "game_info_update.key");
+  mvprintw(21, 27, "%d", game_info_update.key);
 
   refresh();
 }
@@ -151,6 +152,7 @@ class SnakeGame {
   void game_state_menu(GameState* state, GameInfo_t* gameInfo);
   void game_state_play(GameState* state, GameInfo_t* gameInfo);
   void game_state_game_over(GameState* state, GameInfo_t* gameInfo);
+  void actual_level(GameInfo_t* gameInfo);
 
  public:
   SnakeGame();
@@ -308,17 +310,11 @@ void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
   } else {
     ch = getch();
   }
-
+  // Обработка нажатия
   if (logger.log_key(ch)) {
-    // Обработка нажатия
   } else {
     // Залипание — игнорировать
   }
-
-  // Если та же клавиша, что и ранее — игнорируем (залипание)
-  /* if (ch == gameInfo->prev_key) {
-    return;
-  } */
 
   UserAction_t action = SnakeGame::get_signal(ch);
   if (action == None) return;
@@ -478,6 +474,40 @@ void SnakeGame::reset() {
   initialization();
 }
 
+void SnakeGame::actual_level(GameInfo_t* gameInfo) {
+  if (gameInfo->score >= 5 && gameInfo->score < 10) {
+    gameInfo->level = 2;
+    gameInfo->speed = 350;
+  } else if (gameInfo->score >= 10 && gameInfo->score < 15) {
+    gameInfo->level = 3;
+    gameInfo->speed = 300;
+  } else if (gameInfo->score >= 15 && gameInfo->score < 20) {
+    gameInfo->level = 4;
+    gameInfo->speed = 250;
+  } else if (gameInfo->score >= 20 && gameInfo->score < 25) {
+    gameInfo->level = 5;
+    gameInfo->speed = 220;
+  } else if (gameInfo->score >= 25 && gameInfo->score < 30) {
+    gameInfo->level = 6;
+    gameInfo->speed = 200;
+  } else if (gameInfo->score >= 30 && gameInfo->score < 35) {
+    gameInfo->level = 7;
+    gameInfo->speed = 180;
+  } else if (gameInfo->score >= 35 && gameInfo->score < 40) {
+    gameInfo->level = 8;
+    gameInfo->speed = 160;
+  } else if (gameInfo->score >= 40 && gameInfo->score < 45) {
+    gameInfo->level = 9;
+    gameInfo->speed = 140;
+  } else if (gameInfo->score >= 45) {
+    gameInfo->level = 10;
+    gameInfo->speed = 120;
+  } else {
+    gameInfo->level = 1;
+    gameInfo->speed = 400;  // Базовая скорость
+  }
+}
+
 // @brief Меню игры
 void SnakeGame::game_state_menu(GameState* state, GameInfo_t* gameInfo) {
   std::cout << "==== SNAKE GAME ====\n";
@@ -514,14 +544,14 @@ void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
       SnakeGame::clear_apple(gameInfo);
       gameInfo->n_tail++;
       SnakeGame::generate_apple_in_field(gameInfo, &apple_height, &apple_width);
-      gameInfo->score += 100;
+      gameInfo->score += 1;
     }
 
     for (int i = gameInfo->n_tail - 1; i > 0; i--) {
       gameInfo->tail_x[i] = gameInfo->tail_x[i - 1];
       gameInfo->tail_y[i] = gameInfo->tail_y[i - 1];
     }
-
+    actual_level(gameInfo);
     print_field_n(SnakeGame::updateCurrentState(*gameInfo));
   }
   getch();   // Ждём нажатия перед выходом
