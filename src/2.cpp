@@ -26,9 +26,7 @@ typedef struct {
   int level;
   int speed;
   int pause;
-  int debug;
   bool first_run;
-  int last_processed_key;
 } GameInfo_t;
 
 typedef enum {
@@ -115,9 +113,6 @@ void print_field_n(GameInfo_t game_info_update) {
   // print game score
   mvprintw(4, 27, "%s", "Game score:");
   mvprintw(5, 27, "%d", game_info_update.score);
-  // print key
-  mvprintw(20, 27, "game_info_update.key");
-  mvprintw(21, 27, "%d", game_info_update.key);
 
   refresh();
 }
@@ -141,6 +136,9 @@ class SnakeGame {
   void generate_apple_in_field(GameInfo_t* gameInfo, int* apple_height,
                                int* apple_width);
   void controller(GameInfo_t* gameInfo, GameState* state);
+  void handle_action(UserAction_t action, GameInfo_t* gameInfo,
+                     GameState* state);
+  int get_key_code(UserAction_t action);
   bool fix_buttons(UserAction_t newDir, UserAction_t prevDir);
   int collision_check(GameInfo_t gameInfo);
   void snake_movement(GameInfo_t* gameInfo);
@@ -300,24 +298,23 @@ bool SnakeGame::fix_buttons(UserAction_t newDir, UserAction_t prevDir) {
   return true;
 }
 
-void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
-  int ch;
-  KeyLogger logger;
-
-  if (gameInfo->first_run) {
-    ch = '\n';
-    gameInfo->first_run = false;
-  } else {
-    ch = getch();
+int SnakeGame::get_key_code(UserAction_t action) {
+  switch (action) {
+    case Up:
+      return KEY_UP;
+    case Down:
+      return KEY_DOWN;
+    case Left:
+      return KEY_LEFT;
+    case Right:
+      return KEY_RIGHT;
+    default:
+      return -1;
   }
-  // Обработка нажатия
-  if (logger.log_key(ch)) {
-  } else {
-    // Залипание — игнорировать
-  }
+}
 
-  UserAction_t action = SnakeGame::get_signal(ch);
-  if (action == None) return;
+void SnakeGame::handle_action(UserAction_t action, GameInfo_t* gameInfo,
+                              GameState* state) {
   if (action == Terminate) {
     *state = GameState::EXIT;
     return;
@@ -344,10 +341,35 @@ void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
   if (action == Up || action == Down || action == Left || action == Right) {
     if (SnakeGame::fix_buttons(action,
                                SnakeGame::get_signal(gameInfo->prev_key))) {
-      gameInfo->prev_key = ch;
-      gameInfo->key = ch;
+      gameInfo->prev_key = SnakeGame::get_key_code(action);
+      gameInfo->key = SnakeGame::get_key_code(action);
     }
   }
+  if (action == Action) {
+    gameInfo->speed = 50;
+  }
+}
+
+// @brief Контроллеры
+void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
+  int ch;
+  KeyLogger logger;
+
+  if (gameInfo->first_run) {
+    ch = '\n';
+    gameInfo->first_run = false;
+  } else {
+    ch = getch();
+  }
+  // Обработка нажатия
+  if (logger.log_key(ch)) {
+  } else {
+    // Залипание — игнорировать
+  }
+
+  UserAction_t action = SnakeGame::get_signal(ch);
+  if (action == None) return;
+  handle_action(action, gameInfo, state);
 }
 
 int SnakeGame::collision_check(GameInfo_t gameInfo) {
@@ -422,7 +444,6 @@ GameInfo_t SnakeGame::updateCurrentState(GameInfo_t gameInfo) {
   game_info_update.high_score = gameInfo.high_score;
   game_info_update.level = gameInfo.level;
   game_info_update.score = gameInfo.score;
-  game_info_update.debug = gameInfo.debug;
   game_info_update.key = gameInfo.key;
 
   return game_info_update;
@@ -458,16 +479,13 @@ void SnakeGame::reset() {
   gameInfo.level = 1;
   gameInfo.speed = 400;
   gameInfo.pause = 1;
-
   gameInfo.tail_x = new int[100]();
   gameInfo.tail_y = new int[100]();
   gameInfo.x = 5;
   gameInfo.y = 13;
   gameInfo.n_tail = 4;
-  // gameInfo.key = KEY_UP;
-  // gameInfo.prev_key = KEY_UP;
+  gameInfo.prev_key = KEY_UP;
   gameInfo.first_run = false;
-
   state = GameState::MENU;
 
   // Повторная инициализация
@@ -523,6 +541,7 @@ void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
   SnakeGame::initialization();
   while (wait(gameInfo) &&
          (*state == GameState::PLAY || *state == GameState::PAUSE)) {
+    SnakeGame::actual_level(gameInfo);
     SnakeGame::filling_playing_field(gameInfo);
     SnakeGame::controller(gameInfo, state);
 
@@ -551,7 +570,7 @@ void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
       gameInfo->tail_x[i] = gameInfo->tail_x[i - 1];
       gameInfo->tail_y[i] = gameInfo->tail_y[i - 1];
     }
-    actual_level(gameInfo);
+
     print_field_n(SnakeGame::updateCurrentState(*gameInfo));
   }
   getch();   // Ждём нажатия перед выходом
@@ -575,21 +594,20 @@ SnakeGame::SnakeGame(/* args */) {
   // инициализируем начальное состояние игры
   state = GameState::MENU;
   gameInfo.next = nullptr;
+  gameInfo.first_run = true;
   gameInfo.score = 0;
   gameInfo.high_score = 0;
   gameInfo.level = 1;
   gameInfo.speed = 400;
-  gameInfo.pause = 1;  //  0 - игра, 1- пауза, 2 - конец игры
-
-  gameInfo.tail_x = new int[100]();
-  gameInfo.tail_y = new int[100]();
+  gameInfo.pause = 1;   //  0 - игра, 1- пауза, 2 - конец игры
   gameInfo.x = 5;       // Голова змейки
   gameInfo.y = 13;      // Голова змейки
   gameInfo.n_tail = 4;  // Длина хвоста
   gameInfo.key = KEY_UP;
   gameInfo.prev_key = KEY_UP;
-  gameInfo.first_run = true;
-  gameInfo.last_processed_key = -1;
+
+  gameInfo.tail_x = new int[100]();
+  gameInfo.tail_y = new int[100]();
 }
 
 // Деструктор SnakeGame
