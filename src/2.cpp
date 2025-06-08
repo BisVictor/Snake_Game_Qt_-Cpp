@@ -4,8 +4,9 @@
 
 #include <array>
 #include <chrono>
+#include <fstream>  //file
 #include <iostream>
-#include <thread>
+#include <thread>  // bool wait()
 
 const int FIELD_WIDTH = 12;
 const int FIELD_HEIGHT = 22;
@@ -111,8 +112,11 @@ void print_field_n(GameInfo_t game_info_update) {
   mvprintw(2, 27, "%s", "Game level:");
   mvprintw(3, 27, "%d", game_info_update.level);
   // print game score
-  mvprintw(4, 27, "%s", "Game score:");
-  mvprintw(5, 27, "%d", game_info_update.score);
+  mvprintw(4, 27, "%s", "Game high score:");
+  mvprintw(5, 27, "%d", game_info_update.high_score);
+  // print game score
+  mvprintw(6, 27, "%s", "Game score:");
+  mvprintw(7, 27, "%d", game_info_update.score);
 
   refresh();
 }
@@ -151,6 +155,8 @@ class SnakeGame {
   void game_state_play(GameState* state, GameInfo_t* gameInfo);
   void game_state_game_over(GameState* state, GameInfo_t* gameInfo);
   void actual_level(GameInfo_t* gameInfo);
+  int load_high_score(const std::string& filename);
+  void save_high_score(const std::string& filename, int score);
 
  public:
   SnakeGame();
@@ -350,7 +356,7 @@ void SnakeGame::handle_action(UserAction_t action, GameInfo_t* gameInfo,
   }
 }
 
-// @brief Контроллеры
+// @brief Тонкий контроллер
 void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
   int ch;
   KeyLogger logger;
@@ -441,10 +447,9 @@ GameInfo_t SnakeGame::updateCurrentState(GameInfo_t gameInfo) {
     }
   }
   game_info_update.pause = gameInfo.pause;
-  game_info_update.high_score = gameInfo.high_score;
   game_info_update.level = gameInfo.level;
+  game_info_update.high_score = gameInfo.high_score;
   game_info_update.score = gameInfo.score;
-  game_info_update.key = gameInfo.key;
 
   return game_info_update;
 }
@@ -492,6 +497,7 @@ void SnakeGame::reset() {
   initialization();
 }
 
+// @brief Актуальный уровень и score
 void SnakeGame::actual_level(GameInfo_t* gameInfo) {
   if (gameInfo->score >= 5 && gameInfo->score < 10) {
     gameInfo->level = 2;
@@ -526,6 +532,32 @@ void SnakeGame::actual_level(GameInfo_t* gameInfo) {
   }
 }
 
+// @brief Считываем high core игры
+int SnakeGame::load_high_score(const std::string& filename) {
+  std::ifstream file(filename);  // Открываем файл на чтение
+  int high_score = 0;
+
+  if (file.is_open()) {  // Убедимся, что файл открылся
+    file >> high_score;  // Считываем число из файла
+    file.close();
+  }
+
+  return high_score;  // Возвращаем считанное значение (или 0 по умолчанию)
+}
+
+// @brief Сохраняем high core игры
+void SnakeGame::save_high_score(const std::string& filename, int score) {
+  int current_high = SnakeGame::load_high_score(filename);
+
+  if (score > current_high) {
+    std::ofstream file(filename);
+    if (file.is_open()) {
+      file << score;
+      file.close();
+    }
+  }
+}
+
 // @brief Меню игры
 void SnakeGame::game_state_menu(GameState* state, GameInfo_t* gameInfo) {
   std::cout << "==== SNAKE GAME ====\n";
@@ -539,9 +571,11 @@ void SnakeGame::game_state_menu(GameState* state, GameInfo_t* gameInfo) {
 // @brief Запуск игры
 void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
   SnakeGame::initialization();
+  gameInfo->high_score = SnakeGame::load_high_score("hs_log.txt");
   while (wait(gameInfo) &&
          (*state == GameState::PLAY || *state == GameState::PAUSE)) {
     SnakeGame::actual_level(gameInfo);
+
     SnakeGame::filling_playing_field(gameInfo);
     SnakeGame::controller(gameInfo, state);
 
@@ -564,6 +598,10 @@ void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
       gameInfo->n_tail++;
       SnakeGame::generate_apple_in_field(gameInfo, &apple_height, &apple_width);
       gameInfo->score += 1;
+      if (gameInfo->score > gameInfo->high_score) {
+        gameInfo->high_score = gameInfo->score;
+        SnakeGame::save_high_score("hs_log.txt", gameInfo->high_score);
+      }
     }
 
     for (int i = gameInfo->n_tail - 1; i > 0; i--) {
@@ -580,6 +618,7 @@ void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
 // @brief Конец игры
 void SnakeGame::game_state_game_over(GameState* state, GameInfo_t* gameInfo) {
   std::cout << "==== SNAKE GAME OVER ====\n";
+  std::cout << "Your score: " << gameInfo->score << "\n";
   std::cout << "Press ENTER to restart\n";
   while (*state == GameState::GAME_OVER) {
     SnakeGame::controller(gameInfo, state);
