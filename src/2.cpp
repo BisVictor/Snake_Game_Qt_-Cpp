@@ -2,17 +2,13 @@
 
 #include <ncurses.h>
 
+#include <array>
 #include <chrono>
 #include <iostream>
 #include <thread>
 
 const int FIELD_WIDTH = 12;
 const int FIELD_HEIGHT = 22;
-
-bool waitHalfSecond() {
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  return true;
-}
 
 typedef struct {
   int** field;
@@ -32,6 +28,7 @@ typedef struct {
   int pause;
   int debug;
   bool first_run;
+  int last_processed_key;
 } GameInfo_t;
 
 typedef enum {
@@ -46,8 +43,34 @@ typedef enum {
   None  // Ничего не нажато
 } UserAction_t;
 
+bool wait(GameInfo_t* gameInfo) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(gameInfo->speed));
+  return true;
+}
+
 #define FIELD_HEIGHT 22
 #define FIELD_WIDTH 12
+
+class KeyLogger {
+ private:
+  static const int MAX_KEYS = 3;           // Храним последние 10 клавиш
+  std::array<int, MAX_KEYS> key_buffer{};  // Массив нажатий
+  int current_index = 0;
+
+ public:
+  // Возвращает true, если нажатие не повторяется сразу
+  bool log_key(int ch) {
+    // Проверка на дублирование последнего нажатия
+    if (current_index > 0 && key_buffer[(current_index - 1) % MAX_KEYS] == ch) {
+      return false;  // Повтор — залипание
+    }
+
+    key_buffer[current_index % MAX_KEYS] = ch;
+    current_index++;
+
+    return true;  // Успешное нажатие
+  }
+};
 
 const int ESCAPE_KEY{27};
 const int ENTER_KEY{10};
@@ -69,6 +92,8 @@ void print_field_n(GameInfo_t game_info_update) {
   }
   mvprintw(0, 27, "Game status:");
   const char* game_status = nullptr;
+  const char* game_score = nullptr;
+  game_score = "Game score:";
   mvprintw(0, 27, "Game status: ");
   switch (game_info_update.pause) {
     case 0:
@@ -84,7 +109,14 @@ void print_field_n(GameInfo_t game_info_update) {
       game_status = "Unknown";
       break;
   }
+  // print game status
   mvprintw(1, 27, "%s", game_status);
+  // print game score
+  mvprintw(2, 27, "%s", game_score);
+  mvprintw(3, 27, "%d", game_info_update.score);
+
+  mvprintw(8, 27, "game_info_update.key");
+  mvprintw(9, 27, "%d", game_info_update.key);
 
   refresh();
 }
@@ -268,54 +300,56 @@ bool SnakeGame::fix_buttons(UserAction_t newDir, UserAction_t prevDir) {
 
 void SnakeGame::controller(GameInfo_t* gameInfo, GameState* state) {
   int ch;
+  KeyLogger logger;
 
-  // Первый запуск: эмулируем Enter
   if (gameInfo->first_run) {
     ch = '\n';
     gameInfo->first_run = false;
   } else {
-    ch = getch();  // Считываем ввод
+    ch = getch();
   }
 
-  UserAction_t action = SnakeGame::get_signal(ch);  // Преобразуем
+  if (logger.log_key(ch)) {
+    // Обработка нажатия
+  } else {
+    // Залипание — игнорировать
+  }
 
-  if (action == None) return;  // Ничего не нажато
+  // Если та же клавиша, что и ранее — игнорируем (залипание)
+  /* if (ch == gameInfo->prev_key) {
+    return;
+  } */
+
+  UserAction_t action = SnakeGame::get_signal(ch);
+  if (action == None) return;
   if (action == Terminate) {
     *state = GameState::EXIT;
     return;
   }
 
   if (action == Pause && gameInfo->pause == 0) {
-    gameInfo->pause = 1;  // Пауза
+    gameInfo->pause = 1;
     *state = GameState::PAUSE;
     return;
-
   } else if (action == Pause && gameInfo->pause == 1) {
-    gameInfo->pause = 0;  // Пауза отжата
+    gameInfo->pause = 0;
     *state = GameState::PLAY;
     return;
-  }
-
-  else if (action == Pause && gameInfo->pause == 2) {
-    gameInfo->pause = 0;  // Пауза отжата
+  } else if (action == Pause && gameInfo->pause == 2) {
+    gameInfo->pause = 0;
     *state = GameState::PLAY;
     return;
-  }
-
-  else if (action == Terminate &&
-           (gameInfo->pause == 1 || gameInfo->pause == 2)) {
-    gameInfo->pause = 3;  // Пауза отжата
+  } else if (action == Terminate &&
+             (gameInfo->pause == 1 || gameInfo->pause == 2)) {
+    gameInfo->pause = 3;
     return;
   }
 
-  // Направление движения
   if (action == Up || action == Down || action == Left || action == Right) {
-    // Если движение валидное, обновляем
     if (SnakeGame::fix_buttons(action,
                                SnakeGame::get_signal(gameInfo->prev_key))) {
       gameInfo->prev_key = ch;
       gameInfo->key = ch;
-      // gameInfo->pause = 0;
     }
   }
 }
@@ -393,6 +427,7 @@ GameInfo_t SnakeGame::updateCurrentState(GameInfo_t gameInfo) {
   game_info_update.level = gameInfo.level;
   game_info_update.score = gameInfo.score;
   game_info_update.debug = gameInfo.debug;
+  game_info_update.key = gameInfo.key;
 
   return game_info_update;
 }
@@ -404,7 +439,7 @@ void SnakeGame::initialization() {
   noecho();
   curs_set(0);
   keypad(stdscr, TRUE);
-  nodelay(stdscr, TRUE);
+  nodelay(stdscr, TRUE);  // неблокирующая версия getch()
 
   allocate_memory_for_field(&gameInfo);
   allocate_memory_for_next(&gameInfo);
@@ -425,7 +460,7 @@ void SnakeGame::reset() {
   gameInfo.next = nullptr;
   gameInfo.score = 0;
   gameInfo.level = 1;
-  gameInfo.speed = 1;
+  gameInfo.speed = 400;
   gameInfo.pause = 1;
 
   gameInfo.tail_x = new int[100]();
@@ -433,8 +468,8 @@ void SnakeGame::reset() {
   gameInfo.x = 5;
   gameInfo.y = 13;
   gameInfo.n_tail = 4;
-  gameInfo.key = KEY_UP;
-  gameInfo.prev_key = KEY_UP;
+  // gameInfo.key = KEY_UP;
+  // gameInfo.prev_key = KEY_UP;
   gameInfo.first_run = false;
 
   state = GameState::MENU;
@@ -456,10 +491,11 @@ void SnakeGame::game_state_menu(GameState* state, GameInfo_t* gameInfo) {
 // @brief Запуск игры
 void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
   SnakeGame::initialization();
-  while (waitHalfSecond() &&
+  while (wait(gameInfo) &&
          (*state == GameState::PLAY || *state == GameState::PAUSE)) {
     SnakeGame::filling_playing_field(gameInfo);
     SnakeGame::controller(gameInfo, state);
+
     if (gameInfo->pause == 1) {  // Pause
       print_field_n(SnakeGame::updateCurrentState(*gameInfo));
       continue;
@@ -478,6 +514,7 @@ void SnakeGame::game_state_play(GameState* state, GameInfo_t* gameInfo) {
       SnakeGame::clear_apple(gameInfo);
       gameInfo->n_tail++;
       SnakeGame::generate_apple_in_field(gameInfo, &apple_height, &apple_width);
+      gameInfo->score += 100;
     }
 
     for (int i = gameInfo->n_tail - 1; i > 0; i--) {
@@ -511,7 +548,7 @@ SnakeGame::SnakeGame(/* args */) {
   gameInfo.score = 0;
   gameInfo.high_score = 0;
   gameInfo.level = 1;
-  gameInfo.speed = 1;
+  gameInfo.speed = 400;
   gameInfo.pause = 1;  //  0 - игра, 1- пауза, 2 - конец игры
 
   gameInfo.tail_x = new int[100]();
@@ -522,6 +559,7 @@ SnakeGame::SnakeGame(/* args */) {
   gameInfo.key = KEY_UP;
   gameInfo.prev_key = KEY_UP;
   gameInfo.first_run = true;
+  gameInfo.last_processed_key = -1;
 }
 
 // Деструктор SnakeGame
