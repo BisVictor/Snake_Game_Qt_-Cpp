@@ -1,13 +1,78 @@
-CC = g++ 
-CFLAG = -std=c++17 -Wall -Wextra #-Werror
+# Makefile для SnakeGame (Qt проект)
 
+# Переменные
+CXX = g++
+MOC = /usr/lib/qt5/bin/moc
+TARGET = SnakeGame
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
+DOCDIR = $(PREFIX)/share/doc/$(TARGET)
 
+# Флаги компиляции
+CXXFLAGS = -pipe -O2 -std=gnu++11 -Wall -Wextra -D_REENTRANT -fPIC \
+           -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+INCPATH = -I. \
+          -I/usr/include/x86_64-linux-gnu/qt5 \
+          -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets \
+          -I/usr/include/x86_64-linux-gnu/qt5/QtGui \
+          -I/usr/include/x86_64-linux-gnu/qt5/QtCore \
+          -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++
 
-all: clear
-	g++ -std=c++17 -Wall -Wextra 1.cpp -o game -lncurses
+# Библиотеки
+LIBS = -lQt5Widgets -lQt5Gui -lQt5Core -lGL -lpthread
 
-2: clear
-	g++ -std=c++17 -Wall -Wextra 2.cpp -o game2 -lncurses
+# Исходные файлы
+SOURCES = main.cpp mainwindow.cpp
+HEADERS = mainwindow.h
+MOC_SRC = moc_mainwindow.cpp
+OBJECTS = $(SOURCES:.cpp=.o) $(MOC_SRC:.cpp=.o)
 
-clear:
-	rm -f game
+# Правила по умолчанию
+.PHONY: all install uninstall clean dvi dist test
+
+all: $(TARGET)
+
+# Сборка основной программы
+$(TARGET): $(OBJECTS)
+	$(CXX) -Wl,-O1 -o $@ $^ $(LIBS)
+
+# Генерация moc-файлов
+moc_%.cpp: %.h
+	$(MOC) $(INCPATH) $< -o $@
+
+# Компиляция .cpp файлов
+%.o: %.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
+
+# Установка
+install: all
+	install -d $(BINDIR)
+	install -m 755 $(TARGET) $(BINDIR)
+	install -d $(DOCDIR)
+	install -m 644 README.md $(DOCDIR)
+
+# Удаление
+uninstall:
+	rm -f $(BINDIR)/$(TARGET)
+	rm -rf $(DOCDIR)
+
+# Очистка
+clean:
+	rm -f $(TARGET) *.o moc_*.cpp
+
+# Документация (dvi)
+dvi:
+	@echo "Генерация документации не реализована"
+
+# Дистрибутив
+dist: clean
+	mkdir -p $(TARGET)-1.0
+	cp $(SOURCES) $(HEADERS) Makefile $(TARGET)-1.0/
+	tar -czf $(TARGET)-1.0.tar.gz $(TARGET)-1.0
+	rm -rf $(TARGET)-1.0
+
+# Тестирование
+test: all
+	@echo "Запуск тестов..."
+	./$(TARGET) --test
+	@echo "Тестирование завершено"

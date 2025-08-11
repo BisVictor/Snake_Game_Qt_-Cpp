@@ -47,8 +47,8 @@ bool wait(GameInfo_t* gameInfo) {
   return true;
 }
 
-#define FIELD_HEIGHT 22
-#define FIELD_WIDTH 12
+// #define FIELD_HEIGHT 22
+// #define FIELD_WIDTH 12
 
 class KeyLogger {
  private:
