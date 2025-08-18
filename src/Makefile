@@ -74,5 +74,5 @@ dist: clean
 # Тестирование
 test: all
 	@echo "Запуск тестов..."
-	./$(TARGET) --test
+	./tests/run_tests.sh
 	@echo "Тестирование завершено"

@@ -5,6 +5,9 @@
 #include <QMap>
 #include <QTimer>
 
+// Предварительное объявление тестового класса
+class MainWindowTest;
+
 constexpr int FIELD_WIDTH = 10;
 constexpr int FIELD_HEIGHT = 20;
 constexpr int QT_KEY_UP = Qt::Key_Up;
@@ -40,14 +43,11 @@ struct GameInfo_t {
 class MainWindow : public QMainWindow {
   Q_OBJECT
  public:
+  friend class MainWindowTest;
   explicit MainWindow(QWidget* parent = nullptr);
   ~MainWindow();
 
- protected:
-  void paintEvent(QPaintEvent* event) override;
-  void keyPressEvent(QKeyEvent* event) override;
-
- private:
+  // private:
   QTimer* boostTimer;  // Таймер для временного ускорения
   int normalSpeed;     // Для хранения обычной скорости
   QTimer* gameTimer;
@@ -56,14 +56,14 @@ class MainWindow : public QMainWindow {
   int apple_height = 0;
   int apple_width = 0;
 
-  void allocate_memory_for_field(GameInfo_t* gameInfo);
-  void allocate_memory_for_next(GameInfo_t* gameInfo);
-  void allocate_memory_for_snake(GameInfo_t* gameInfo);
-  void free_memory_field(GameInfo_t* gameInfo);
-  void free_memory_next(GameInfo_t* gameInfo);
-  void free_memory_snake(GameInfo_t* gameInfo);
-  void free_tail_arrays(GameInfo_t* gameInfo);
-  void filling_playing_field(GameInfo_t* gameInfo);
+  static void allocate_memory_for_field(GameInfo_t* gameInfo);
+  static void allocate_memory_for_next(GameInfo_t* gameInfo);
+  static void allocate_memory_for_snake(GameInfo_t* gameInfo);
+  static void free_memory_field(GameInfo_t* gameInfo);
+  static void free_memory_next(GameInfo_t* gameInfo);
+  static void free_memory_snake(GameInfo_t* gameInfo);
+  static void free_tail_arrays(GameInfo_t* gameInfo);
+  static void filling_playing_field(GameInfo_t* gameInfo);
 
   void initialization();
   void reset();
@@ -85,6 +85,9 @@ class MainWindow : public QMainWindow {
   void game_state_play();
   void game_state_game_over();
   void updateGame();
+
+  void paintEvent(QPaintEvent* event) override;
+  void keyPressEvent(QKeyEvent* event) override;
 
   void drawGameField(QPainter& painter, const GameInfo_t& state);
   void drawGameUI(QPainter& painter, const GameInfo_t& state);
