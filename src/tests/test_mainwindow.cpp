@@ -4,6 +4,8 @@
 
 #include "../mainwindow.h"
 
+namespace s21 {
+
 void MainWindowTest::SetUp() { mainWindow = new MainWindow(); }
 
 void MainWindowTest::TearDown() { delete mainWindow; }
@@ -84,4 +86,5 @@ TEST_F(MainWindowTest, CollisionDetection) {
 
   int collision = mainWindow->collision_check(mainWindow->gameInfo);
   EXPECT_EQ(collision, 1);  // Ожидаем обнаружение столкновения
+}
 }

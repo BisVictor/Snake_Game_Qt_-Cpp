@@ -47,3 +47,9 @@ target_link_libraries(SnakeGameTests
 
 enable_testing()
 add_test(NAME SnakeGameTests COMMAND SnakeGameTests)
+
+# Включение coverage флагов для всех целей
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-fprofile-arcs -ftest-coverage)
+    add_link_options(--coverage)
+endif()

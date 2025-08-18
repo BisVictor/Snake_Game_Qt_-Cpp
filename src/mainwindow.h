@@ -8,6 +8,8 @@
 // Предварительное объявление тестового класса
 class MainWindowTest;
 
+namespace s21 {
+
 constexpr int FIELD_WIDTH = 10;
 constexpr int FIELD_HEIGHT = 20;
 constexpr int QT_KEY_UP = Qt::Key_Up;
@@ -51,6 +53,7 @@ class MainWindow : public QMainWindow {
   QTimer* boostTimer;  // Таймер для временного ускорения
   int normalSpeed;     // Для хранения обычной скорости
   QTimer* gameTimer;
+  GameInfo_t currentState;
   GameInfo_t gameInfo;
   GameState state;
   int apple_height = 0;
@@ -80,8 +83,10 @@ class MainWindow : public QMainWindow {
   void actual_level(GameInfo_t* gameInfo);
   int load_high_score(const QString& filename);
   void save_high_score(const QString& filename, int score);
+  void initTimers();
 
   void game_state_menu();
+  void game_state_pause();
   void game_state_play();
   void game_state_game_over();
   void updateGame();
@@ -93,5 +98,6 @@ class MainWindow : public QMainWindow {
   void drawGameUI(QPainter& painter, const GameInfo_t& state);
   void drawGameOverlay(QPainter& painter, const GameState& state);
 };
+}  // namespace s21
 
 #endif  // MAINWINDOW_H

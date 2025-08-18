@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+namespace s21 {
 class MainWindow;  // Предварительное объявление
 
 class MainWindowTest : public ::testing::Test {
@@ -10,7 +11,7 @@ class MainWindowTest : public ::testing::Test {
   void SetUp() override;
   void TearDown() override;
 
-  MainWindow* mainWindow;
+  s21::MainWindow* mainWindow;
 };
-
+}  // namespace s21
 #endif  // TEST_MAINWINDOW_H

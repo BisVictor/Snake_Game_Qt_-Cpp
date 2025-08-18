@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <ctime>
 
+using namespace s21;
+
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   gameTimer = new QTimer(this);
   connect(gameTimer, &QTimer::timeout, this, &MainWindow::updateGame);
@@ -30,6 +32,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   gameInfo.y = 13;
   gameInfo.n_tail = 4;
   gameInfo.prev_key = QT_KEY_UP;
+  // currentState = nullptr;
 
   initialization();
   setFixedSize(FIELD_WIDTH * 20 + 200, FIELD_HEIGHT * 20);
@@ -135,6 +138,7 @@ void MainWindow::free_memory_snake(GameInfo_t* gameInfo) {
 
 void MainWindow::initialization() {
   allocate_memory_for_field(&gameInfo);
+  allocate_memory_for_field(&currentState);
   allocate_memory_for_next(&gameInfo);
   allocate_memory_for_snake(&gameInfo);
   generate_apple_in_field(&gameInfo, &apple_height, &apple_width);
@@ -143,6 +147,7 @@ void MainWindow::initialization() {
 void MainWindow::reset() {
   free_tail_arrays(&gameInfo);
   free_memory_field(&gameInfo);
+  free_memory_field(&currentState);
   free_memory_next(&gameInfo);
   free_memory_snake(&gameInfo);
 
@@ -463,6 +468,11 @@ void MainWindow::save_high_score(const QString& filename, int score) {
 
 void MainWindow::game_state_menu() { state = GameState::PLAY; }
 
+void MainWindow::game_state_pause() {
+  state = GameState::PAUSE;
+  currentState.pause = 1;
+}
+
 void MainWindow::game_state_play() {
   gameInfo.high_score = load_high_score("hs_log.txt");
   filling_playing_field(&gameInfo);
@@ -470,9 +480,12 @@ void MainWindow::game_state_play() {
   actual_level(&gameInfo);
 
   if (gameInfo.pause == 1) {
+    state = GameState::PAUSE;
+    currentState.pause = 1;
     return;
   } else if (gameInfo.pause == 2) {
     state = GameState::GAME_OVER;
+    currentState.pause = 2;
     update();
     return;
   }
@@ -481,6 +494,7 @@ void MainWindow::game_state_play() {
     snake_movement(&gameInfo);
   } else {
     gameInfo.pause = 2;
+    currentState = updateCurrentState(gameInfo);
     update();
     return;
   }
@@ -502,6 +516,7 @@ void MainWindow::game_state_play() {
     gameInfo.tail_y[i] = gameInfo.tail_y[i - 1];
   }
 
+  currentState = updateCurrentState(gameInfo);
   update();
 }
 
@@ -517,8 +532,7 @@ void MainWindow::paintEvent(QPaintEvent* event) {
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  GameInfo_t currentState = updateCurrentState(gameInfo);
-
+  // Используем уже обновленное состояние
   drawGameField(painter, currentState);
   drawGameUI(painter, currentState);
 
@@ -567,6 +581,8 @@ void MainWindow::drawGameUI(QPainter& painter, const GameInfo_t& state) {
   painter.drawText(250, 160, QString::number(state.score));
   painter.drawText(250, 180, "Game speed:");
   painter.drawText(250, 200, QString::number(state.speed));
+  painter.drawText(250, 220, "Game pause:");
+  painter.drawText(250, 240, QString::number(state.pause));
 }
 
 void MainWindow::drawGameOverlay(QPainter& painter, const GameState& state) {
@@ -592,6 +608,7 @@ void MainWindow::updateGame() {
       game_state_menu();
       break;
     case GameState::PAUSE:
+      game_state_pause();
       break;
     case GameState::GAME_OVER:
       game_state_game_over();
