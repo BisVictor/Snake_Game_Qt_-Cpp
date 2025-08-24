@@ -22,9 +22,9 @@ INCPATH = -I. \
 LIBS = -lQt5Widgets -lQt5Gui -lQt5Core -lGL -lpthread
 
 # Исходные файлы
-SOURCES = main.cpp mainwindow.cpp gui/desktop/frontend.cpp
-HEADERS = mainwindow.h gui/desktop/frontend.h
-MOC_SRC = moc_mainwindow.cpp
+SOURCES = brick_game/snake/main.cpp brick_game/snake/mainwindow.cpp gui/desktop/frontend.cpp
+HEADERS = brick_game/snake/mainwindow.h gui/desktop/frontend.h
+MOC_SRC = brick_game/snake/moc_mainwindow.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MOC_SRC:.cpp=.o)
 
 # Правила по умолчанию
@@ -59,6 +59,14 @@ uninstall:
 # Очистка
 clean:
 	rm -f $(TARGET) *.o moc_*.cpp
+	rm -f gui/desktop/frontend.o
+	rm -f brick_game/snake/moc_mainwindow.o
+	rm -f brick_game/snake/mainwindow.o
+	rm -f brick_game/snake/main.o
+	rm -rf tests/build
+	rm -f SnakeGame-1.0.tar.gz
+	
+
 
 # Документация (dvi)
 dvi:

@@ -2,7 +2,7 @@
 
 #include <QKeyEvent>  // Добавлено для QKeyEvent
 
-#include "../mainwindow.h"
+#include "brick_game/snake/mainwindow.h"
 
 namespace s21 {
 

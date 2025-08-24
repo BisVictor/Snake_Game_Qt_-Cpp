@@ -7,39 +7,49 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt5 REQUIRED COMPONENTS Widgets Test)
 find_package(GTest REQUIRED)
 
-# Указываем правильные пути относительно расположения CMakeLists.txt
-set(SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")  # Переходим на уровень выше (в src)
-set(TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+# Указываем корневую директорию проекта
+set(PROJECT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
+set(SNAKE_DIR "${PROJECT_ROOT_DIR}/brick_game/snake")
+set(GUI_DIR "${PROJECT_ROOT_DIR}/gui/desktop")
 
 # Основной код приложения (как библиотека)
 add_library(SnakeGameLib STATIC 
-    "${SOURCE_DIR}/mainwindow.cpp"
-    "${SOURCE_DIR}/main.cpp"
+    "${SNAKE_DIR}/mainwindow.cpp"
+    "${SNAKE_DIR}/main.cpp"
+    "${GUI_DIR}/frontend.cpp"
 )
 
+# Добавляем ВСЕ необходимые include-директории
 target_include_directories(SnakeGameLib PUBLIC 
-    "${SOURCE_DIR}"
+    "${PROJECT_ROOT_DIR}"        # Корень src/
+    "${SNAKE_DIR}"               # brick_game/snake/
+    "${GUI_DIR}"                 # gui/desktop/
+    "${CMAKE_CURRENT_SOURCE_DIR}" # tests/
 )
 
 target_link_libraries(SnakeGameLib 
     Qt5::Widgets
+    Qt5::Core
+    Qt5::Gui
 )
 
 # Исполняемый файл для тестов
 add_executable(SnakeGameTests
-    "${TESTS_DIR}/main_test.cpp"
-    "${TESTS_DIR}/test_mainwindow.cpp"
-    "${TESTS_DIR}/test_mainwindow.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/main_test.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_mainwindow.cpp"
 )
 
+# Добавляем include-директории для тестов
 target_include_directories(SnakeGameTests PUBLIC 
-    "${SOURCE_DIR}"
-    "${TESTS_DIR}"
+    "${PROJECT_ROOT_DIR}"
+    "${SNAKE_DIR}"
+    "${GUI_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 target_link_libraries(SnakeGameTests
     SnakeGameLib
-    Qt5::Widgets
+    Qt5::Widgets`
     Qt5::Test
     GTest::GTest
     GTest::Main

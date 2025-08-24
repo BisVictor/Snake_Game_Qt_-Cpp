@@ -5,7 +5,7 @@
 #include <QPainter>
 #include <QTextStream>
 
-#include "../../mainwindow.h"
+#include "brick_game/snake/mainwindow.h"
 
 namespace RenderUtils {
 void drawGameField(QPainter& painter, const s21::GameInfo_t& state);
