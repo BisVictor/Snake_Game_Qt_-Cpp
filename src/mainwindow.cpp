@@ -532,19 +532,11 @@ void MainWindow::paintEvent(QPaintEvent* event) {
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  // Используем уже обновленное состояние
-  drawGameField(painter, currentState);
-  drawGameUI(painter, currentState);
-
-  if (currentState.pause == 1 || currentState.pause == 2) {
-    drawGameOverlay(painter, static_cast<GameState>(
-                                 currentState.pause == 1 ? PAUSE : GAME_OVER));
-  }
+  RenderUtils::drawAll(painter, currentState, width(), height());
 }
 
 // GUI FUNCTIONS
-
-void MainWindow::drawGameField(QPainter& painter, const GameInfo_t& state) {
+/* void MainWindow::drawGameField(QPainter& painter, const GameInfo_t& state) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {
     for (int j = 0; j < FIELD_WIDTH; j++) {
       QRect cell(j * 20, i * 20, 20, 20);
@@ -594,7 +586,7 @@ void MainWindow::drawGameOverlay(QPainter& painter, const GameState& state) {
                                      : "GAME OVER\nPress Enter to restart";
 
   painter.drawText(rect(), Qt::AlignCenter, message);
-}
+} */
 
 // END GUI FUNCTIONS
 

@@ -91,13 +91,8 @@ class MainWindow : public QMainWindow {
   void game_state_game_over();
   void updateGame();
 
-  void paintEvent(QPaintEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
 
-  void drawGameField(QPainter& painter, const GameInfo_t& state);
-  void drawGameUI(QPainter& painter, const GameInfo_t& state);
-  void drawGameOverlay(QPainter& painter, const GameState& state);
+  void paintEvent(QPaintEvent* event) override;
 };
 }  // namespace s21
-
-#endif  // MAINWINDOW_H
