@@ -22,8 +22,8 @@ INCPATH = -I. \
 LIBS = -lQt5Widgets -lQt5Gui -lQt5Core -lGL -lpthread
 
 # Исходные файлы
-SOURCES = main.cpp mainwindow.cpp
-HEADERS = mainwindow.h
+SOURCES = main.cpp mainwindow.cpp gui/desktop/frontend.cpp
+HEADERS = mainwindow.h gui/desktop/frontend.h
 MOC_SRC = moc_mainwindow.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MOC_SRC:.cpp=.o)
 

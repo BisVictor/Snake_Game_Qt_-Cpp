@@ -96,3 +96,5 @@ class MainWindow : public QMainWindow {
   void paintEvent(QPaintEvent* event) override;
 };
 }  // namespace s21
+
+#endif  // MAINWINDOW_H

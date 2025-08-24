@@ -1,9 +1,11 @@
 #ifndef FRONTEND_H
 #define FRONTEND_H
 
-#include <QMainWindow>
-#include <QMap>
-#include <QTimer>
+#include <QKeyEvent>
+#include <QPainter>
+#include <QTextStream>
+
+#include "../../mainwindow.h"
 
 namespace RenderUtils {
 void drawGameField(QPainter& painter, const s21::GameInfo_t& state);
