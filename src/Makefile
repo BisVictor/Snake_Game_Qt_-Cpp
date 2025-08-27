@@ -44,6 +44,9 @@ moc_%.cpp: %.h
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
 
+snake_cli:
+	g++ 2.cpp -lncurses -o SnakeGame_cli
+
 # Установка
 install: all
 	install -d $(BINDIR)
@@ -58,19 +61,23 @@ uninstall:
 
 # Очистка
 clean:
-	rm -f $(TARGET) *.o moc_*.cpp
+	rm -f $(TARGET) *.o moc_*.cpp SnakeGame_cli
 	rm -f gui/desktop/frontend.o
 	rm -f brick_game/snake/moc_mainwindow.o
 	rm -f brick_game/snake/mainwindow.o
 	rm -f brick_game/snake/main.o
 	rm -rf tests/build
 	rm -f SnakeGame-1.0.tar.gz
+	rm -f *.aux *.dvi *.log *.out *.toc
 	
 
 
 # Документация (dvi)
 dvi:
-	@echo "Генерация документации не реализована"
+	@echo "Генерация документации"
+	latex documentation.tex
+	latex documentation.tex
+	xdvi documentation.dvi
 
 # Дистрибутив
 dist: clean

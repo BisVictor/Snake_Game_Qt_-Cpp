@@ -1,0 +1,323 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage[margin=2.5cm]{geometry}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=single
+}
+
+\lstset{style=mystyle}
+
+\title{SnakeGame Project Documentation}
+\author{Developer: wartorle}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\begin{abstract}
+Documentation for SnakeGame project - a classic "Snake" game implementation in C++ using Qt framework. Project developed as part of School-21 curriculum.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+\subsection{About the Project}
+SnakeGame is a modern implementation of the classic arcade game "Snake". The project demonstrates the use of object-oriented programming in C++ combined with the Qt graphical framework.
+
+\subsection{Key Features}
+\begin{itemize}
+    \item Full-featured game logic
+    \item Qt-based graphical interface
+    \item High score system
+    \item Multi-level difficulty system
+    \item Temporary speed boost
+    \item Comprehensive documentation and testing
+\end{itemize}
+
+\section{Project Architecture}
+
+\subsection{File Structure}
+\begin{verbatim}
+CPP3_BrickGame_v2.0-1/
+├── src/
+│   ├── brick_game/
+│   │   └── snake/
+│   │       ├── main.cpp
+│   │       ├── mainwindow.h
+│   │       └── mainwindow.cpp
+│   ├── gui/
+│   ├── tests/
+│   ├── documentation.tex
+│   └── hs_log.txt
+└── Makefile
+\end{verbatim}
+
+\section{Classes and Structures}
+
+\subsection{GameInfo\_t Structure}
+Main structure containing all game data:
+
+\begin{lstlisting}[language=C++,caption=GameInfo\_t structure]
+struct GameInfo_t {
+    int** field = nullptr;      // Game field
+    int** snake = nullptr;      // Snake position
+    int** next = nullptr;       // Next state
+    int* tail_x = nullptr;      // Tail X coordinates
+    int* tail_y = nullptr;      // Tail Y coordinates
+    int x = 0;                  // Current X position
+    int y = 0;                  // Current Y position
+    int n_tail = 0;             // Tail length
+    int pause = 0;              // Pause state
+    int level = 1;              // Current level
+    int high_score = 0;         // High score
+    int score = 0;              // Current score
+    int speed = 400;            // Game speed
+    int key = 0;                // Current key
+    int prev_key = 0;           // Previous key
+    bool first_run = true;      // First run flag
+};
+\end{lstlisting}
+
+\subsection{Enumerations}
+\begin{lstlisting}[language=C++,caption=User actions]
+enum UserAction_t { 
+    Up,         // Move up
+    Down,       // Move down
+    Left,       // Move left
+    Right,      // Move right
+    Terminate,  // Terminate game
+    Pause,      // Pause
+    Action,     // Action (space)
+    None        // No action
+};
+
+enum GameState { 
+    MENU,       // Menu
+    PLAY,       // Gameplay
+    PAUSE,      // Pause
+    GAME_OVER,  // Game over
+    EXIT        // Exit
+};
+\end{lstlisting}
+
+\subsection{MainWindow Class}
+Main application class, inherited from QMainWindow.
+
+\begin{lstlisting}[language=C++,caption=Main class fields]
+class MainWindow : public QMainWindow {
+    Q_OBJECT
+    
+    // Timers
+    QTimer* boostTimer;     // Speed boost timer
+    QTimer* gameTimer;      // Main game timer
+    
+    // Game states
+    GameInfo_t currentState; // Current state for rendering
+    GameInfo_t gameInfo;     // Main game state
+    GameState state;         // Current game state
+    
+    // Apple position
+    int apple_height = 0;
+    int apple_width = 0;
+};
+\end{lstlisting}
+
+\section{Main Functions}
+
+\subsection{Memory Management}
+\begin{lstlisting}[language=C++,caption=Memory management functions]
+// Allocate memory for game field
+static void allocate_memory_for_field(GameInfo_t* gameInfo);
+
+// Allocate memory for next state
+static void allocate_memory_for_next(GameInfo_t* gameInfo);
+
+// Allocate memory for snake
+static void allocate_memory_for_snake(GameInfo_t* gameInfo);
+
+// Free memory
+static void free_memory_field(GameInfo_t* gameInfo);
+static void free_memory_next(GameInfo_t* gameInfo);
+static void free_memory_snake(GameInfo_t* gameInfo);
+static void free_tail_arrays(GameInfo_t* gameInfo);
+\end{lstlisting}
+
+\subsection{Game Logic}
+\begin{lstlisting}[language=C++,caption=Game logic functions]
+// Game initialization
+void initialization();
+void reset();
+
+// Apple generation
+void generate_apple_in_field(GameInfo_t* gameInfo, 
+                           int* apple_height, int* apple_width);
+
+// Input handling
+bool fix_buttons(UserAction_t newDir, UserAction_t prevDir);
+int get_key_code(UserAction_t action);
+UserAction_t get_signal(int user_input);
+void handle_action(UserAction_t action, GameInfo_t* gameInfo);
+
+// Movement and collisions
+int collision_check(const GameInfo_t& gameInfo);
+void snake_movement(GameInfo_t* gameInfo);
+void clear_apple(GameInfo_t* gameInfo);
+
+// State updates
+GameInfo_t updateCurrentState(const GameInfo_t& gameInfo);
+void actual_level(GameInfo_t* gameInfo);
+
+// High score system
+int load_high_score(const QString& filename);
+void save_high_score(const QString& filename, int score);
+\end{lstlisting}
+
+\subsection{Game States}
+\begin{lstlisting}[language=C++,caption=Game state functions]
+void game_state_menu();      // Menu state
+void game_state_pause();     // Pause state
+void game_state_play();      // Main gameplay
+void game_state_game_over(); // Game over state
+void updateGame();           // Game update
+\end{lstlisting}
+
+\subsection{Event Handlers}
+\begin{lstlisting}[language=C++,caption=Event handlers]
+// Key press handling
+void keyPressEvent(QKeyEvent* event) override;
+
+// Game rendering
+void paintEvent(QPaintEvent* event) override;
+\end{lstlisting}
+
+\section{High Score System}
+
+The project uses a simple text-based high score system. The high score is saved in the \texttt{hs\_log.txt} file in plain text format.
+
+\subsection{High Score Functions}
+\begin{lstlisting}[language=C++]
+// Load high score from file
+int load_high_score(const QString& filename);
+
+// Save high score to file
+void save_high_score(const QString& filename, int score);
+\end{lstlisting}
+
+\section{Level System}
+
+Difficulty level automatically increases with score:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Score} & \textbf{Level} & \textbf{Speed (ms)} \\
+\hline
+0-4 & 1 & 400 \\
+5-9 & 2 & 350 \\
+10-14 & 3 & 300 \\
+15-19 & 4 & 250 \\
+20-24 & 5 & 220 \\
+25-29 & 6 & 200 \\
+30-34 & 7 & 180 \\
+35-39 & 8 & 160 \\
+40-44 & 9 & 140 \\
+45+ & 10 & 120 \\
+\hline
+\end{tabular}
+\caption{Difficulty level system}
+\end{table}
+
+\section{Controls}
+
+\subsection{Control Keys}
+\begin{itemize}
+    \item \textbf{Up Arrow} - Move up
+    \item \textbf{Down Arrow} - Move down
+    \item \textbf{Left Arrow} - Move left
+    \item \textbf{Right Arrow} - Move right
+    \item \textbf{Enter} - Pause/Resume
+    \item \textbf{Space} - Temporary speed boost
+    \item \textbf{Escape} - Exit game
+\end{itemize}
+
+\section{Building and Running}
+
+\subsection{Project Compilation}
+\begin{verbatim}
+# Create build directory
+mkdir build
+cd build
+
+# Generate Makefile
+cmake ..
+
+# Compile
+make
+
+# Run tests
+make test
+
+# Run application
+./SnakeGame
+\end{verbatim}
+
+\subsection{Documentation Generation}
+\begin{verbatim}
+# Compile LaTeX documentation
+latex documentation.tex
+latex documentation.tex
+
+# View DVI
+xdvi documentation.dvi
+
+# Convert to PDF
+dvipdf documentation.dvi
+\end{verbatim}
+
+\section{Testing}
+
+The project includes comprehensive testing using Google Test. Tests cover:
+
+\begin{itemize}
+    \item Snake movement in all directions
+    \item Collision detection
+    \item High score system
+    \item Level progression
+    \item User input handling
+    \item All game states
+\end{itemize}
+
+\section{Conclusion}
+
+SnakeGame is a full-featured implementation of the classic game with modern development approaches. The project demonstrates best practices in object-oriented programming, memory management, and cross-platform application development.
+
+\end{document}

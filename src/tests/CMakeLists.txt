@@ -49,7 +49,7 @@ target_include_directories(SnakeGameTests PUBLIC
 
 target_link_libraries(SnakeGameTests
     SnakeGameLib
-    Qt5::Widgets`
+    Qt5::Widgets
     Qt5::Test
     GTest::GTest
     GTest::Main
