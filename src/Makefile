@@ -45,7 +45,7 @@ moc_%.cpp: %.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
 
 snake_cli:
-	g++ 2.cpp -lncurses -o SnakeGame_cli
+	g++ snake_cli.cpp -lncurses -o SnakeGame_cli
 
 # Установка
 install: all
