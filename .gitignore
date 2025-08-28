@@ -136,3 +136,12 @@ src/.vscode/c_cpp_properties.json
 src/.vscode/launch.json
 src/game
 src/game1
+src/build/Debug/outDebug
+src/.vscode/tasks.json
+src/1
+.vscode/c_cpp_properties.json
+.gitignore
+.vscode/settings.json
+.gitignore
+src/hs_log.txt
+.vscode/launch.json
