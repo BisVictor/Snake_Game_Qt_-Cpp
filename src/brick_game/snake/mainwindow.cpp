@@ -255,7 +255,7 @@ void MainWindow::handle_action(UserAction_t action, GameInfo_t* gameInfo) {
       gameInfo->speed = 50;
       gameTimer->start(gameInfo->speed);
 
-      // Запускаем таймер на 0.2 секунду
+      // Запускаем таймер на  0.2 секунду
       boostTimer->start(200);
     }
   }
