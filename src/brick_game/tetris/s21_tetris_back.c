@@ -1,6 +1,6 @@
 // добавить sudo apt-get install libncursesw5-dev
 
-#include "../../tetris.h"
+#include "tetris.h"
 
 UserAction_t get_signal(int user_input) {
   UserAction_t key_code = Start;

@@ -1,4 +1,4 @@
-#include "../../tetris.h"
+#include "tetris.h"
 
 void print_field(GameInfo_t gs) {
   for (int i = 0; i < FIELD_HEIGHT; i++) {

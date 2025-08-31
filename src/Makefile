@@ -1,6 +1,8 @@
 # Makefile для SnakeGame (Qt проект)
 
 # Переменные
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror -g -std=c11 
 CXX = g++
 MOC = /usr/lib/qt5/bin/moc
 TARGET = SnakeGame
@@ -47,6 +49,10 @@ moc_%.cpp: %.h
 snake_cli:
 	g++ snake_cli.cpp -lncurses -o SnakeGame_cli
 
+
+tetris:
+	$(CC) $(CFLAGS) -Ibrick_game/tetris/ -o tetris_game brick_game/tetris/s21_tetris_back.c gui/cli/s21_tetris_front.c brick_game/tetris/main.c -lncurses
+	
 # Установка
 install: all
 	install -d $(BINDIR)
@@ -61,7 +67,7 @@ uninstall:
 
 # Очистка
 clean:
-	rm -f $(TARGET) *.o moc_*.cpp SnakeGame_cli
+	rm -f $(TARGET) *.o moc_*.cpp SnakeGame_cli tetris_game
 	rm -f gui/desktop/frontend.o
 	rm -f brick_game/snake/moc_mainwindow.o
 	rm -f brick_game/snake/mainwindow.o
