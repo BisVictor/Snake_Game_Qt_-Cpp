@@ -50,7 +50,7 @@ make all
 
 **mainwindow.cpp, mainwindow.h** — логика игры
 
-**gui/desktop/frontend.h** — отрисовка интерфейса
+**gui/desktop/frontend.h** и **gui/desktop/frontend.cpp**— отрисовка интерфейса
 
 **hs_log.txt** — хранение рекорда
 
