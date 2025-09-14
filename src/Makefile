@@ -46,13 +46,6 @@ moc_%.cpp: %.h
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
 
-snake_cli:
-	g++ snake_cli.cpp -lncurses -o SnakeGame_cli
-
-
-tetris:
-	$(CC) $(CFLAGS) -Ibrick_game/tetris/ -o tetris_game brick_game/tetris/s21_tetris_back.c gui/cli/s21_tetris_front.c brick_game/tetris/main.c -lncurses
-	
 # Установка
 install: all
 	install -d $(BINDIR)
@@ -76,8 +69,6 @@ clean:
 	rm -f SnakeGame-1.0.tar.gz
 	rm -f *.aux *.dvi *.log *.out *.toc
 	
-
-
 # Документация (dvi)
 dvi:
 	@echo "Генерация документации"
